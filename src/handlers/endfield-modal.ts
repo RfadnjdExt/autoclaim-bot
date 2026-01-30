@@ -15,7 +15,7 @@ export async function handleEndfieldModal(interaction: ModalSubmitInteraction): 
 
     if (!validation.valid) {
         await interaction.editReply({
-            content: `❌ Invalid token: ${validation.message}\n\nMake sure to copy the correct values from browser DevTools:\n1. Open https://game.skport.com/endfield/sign-in\n2. Press F12 → Application → Cookies → zonai.skport.com\n3. Copy **cred** and **SK_GAME_ROLE** values`,
+            content: `❌ Invalid token: ${validation.message}\n\n**Cara mendapatkan token:**\n1. Buka https://game.skport.com/endfield/sign-in\n2. Tekan F12 → **Network Tab**\n3. Refresh halaman, cari request ke \`zonai.skport.com\`\n4. Copy \`cred\` dan \`sk_game_role\` dari **Request Headers**`,
         });
         return;
     }

@@ -66,9 +66,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
             {
                 name: '🎮 Endfield Token',
                 value: [
-                    '1. Buka https://game.skport.com/endfield/sign-in',
-                    '2. Tekan F12 → Application → Cookies → zonai.skport.com',
-                    '3. Copy nilai `cred` dan `SK_GAME_ROLE`',
+                    '1. Buka https://game.skport.com/endfield/sign-in dan login',
+                    '2. Tekan F12 → **Network Tab**',
+                    '3. Refresh halaman, cari request ke `zonai.skport.com`',
+                    '4. Copy `cred` dan `sk_game_role` dari **Request Headers**',
                 ].join('\n'),
                 inline: false,
             },

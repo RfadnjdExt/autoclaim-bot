@@ -19,16 +19,16 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
     const credInput = new TextInputBuilder()
         .setCustomId('endfield-cred')
-        .setLabel('cred (from cookies)')
-        .setPlaceholder('Copy from DevTools > Cookies > zonai.skport.com > cred')
+        .setLabel('cred (from Request Headers)')
+        .setPlaceholder('F12 > Network Tab > Request to zonai.skport.com > Headers > cred')
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(20);
 
     const skGameRoleInput = new TextInputBuilder()
         .setCustomId('endfield-sk-game-role')
-        .setLabel('sk_game_role (from cookies)')
-        .setPlaceholder('Format: 3_123456789_asia01 (from SK_GAME_ROLE cookie)')
+        .setLabel('sk_game_role (from Request Headers)')
+        .setPlaceholder('Format: 3_123456789_asia01')
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMinLength(5);
