@@ -15,7 +15,8 @@ export interface IHoyolabData {
 }
 
 export interface IEndfieldData {
-    token: string;
+    cred: string;          // cred token from cookies
+    skGameRole: string;    // sk_game_role from cookies (format: 3_uid_serverid)
     accountName: string;
     lastClaim?: Date;
     lastClaimResult?: string;
@@ -48,7 +49,8 @@ const HoyolabSchema = new Schema<IHoyolabData>({
 });
 
 const EndfieldSchema = new Schema<IEndfieldData>({
-    token: { type: String, required: true },
+    cred: { type: String, required: true },
+    skGameRole: { type: String, required: true },
     accountName: { type: String, default: 'Unknown' },
     lastClaim: { type: Date },
     lastClaimResult: { type: String },

@@ -75,7 +75,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
 
     // Endfield status
-    if (user.endfield?.token) {
+    if (user.endfield?.cred) {
         const lastClaim = user.endfield.lastClaim
             ? `<t:${Math.floor(user.endfield.lastClaim.getTime() / 1000)}:R>`
             : 'Never';

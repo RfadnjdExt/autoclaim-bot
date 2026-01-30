@@ -60,8 +60,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
 
     // Claim Endfield
-    if ((service === 'all' || service === 'endfield') && user.endfield?.token) {
-        const endfieldService = new EndfieldService(user.endfield.token);
+    if ((service === 'all' || service === 'endfield') && user.endfield?.cred) {
+        const endfieldService = new EndfieldService(user.endfield.cred, user.endfield.skGameRole);
         const result = await endfieldService.claim();
 
         embed.addFields({

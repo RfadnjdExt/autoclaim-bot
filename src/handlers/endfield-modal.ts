@@ -5,16 +5,17 @@ import { EndfieldService } from '../services/endfield';
 export async function handleEndfieldModal(interaction: ModalSubmitInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const token = interaction.fields.getTextInputValue('endfield-token').trim();
+    const cred = interaction.fields.getTextInputValue('endfield-cred').trim();
+    const skGameRole = interaction.fields.getTextInputValue('endfield-sk-game-role').trim();
     const nickname = interaction.fields.getTextInputValue('endfield-nickname')?.trim() || 'Unknown';
 
     // Validate token
-    const service = new EndfieldService(token);
+    const service = new EndfieldService(cred, skGameRole);
     const validation = await service.validateToken();
 
     if (!validation.valid) {
         await interaction.editReply({
-            content: `❌ Invalid token: ${validation.message}\n\nMake sure to copy the ACCOUNT_TOKEN value from browser DevTools:\n1. Open https://game.skport.com/endfield/sign-in\n2. Press F12 → Application → Cookies → .skport.com\n3. Find ACCOUNT_TOKEN and copy its value`,
+            content: `❌ Invalid token: ${validation.message}\n\nMake sure to copy the correct values from browser DevTools:\n1. Open https://game.skport.com/endfield/sign-in\n2. Press F12 → Application → Cookies → zonai.skport.com\n3. Copy **cred** and **SK_GAME_ROLE** values`,
         });
         return;
     }
@@ -26,7 +27,8 @@ export async function handleEndfieldModal(interaction: ModalSubmitInteraction): 
             $set: {
                 username: interaction.user.username,
                 endfield: {
-                    token,
+                    cred,
+                    skGameRole,
                     accountName: nickname,
                 },
             },

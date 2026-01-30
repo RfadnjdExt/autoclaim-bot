@@ -17,13 +17,21 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         .setCustomId('setup-endfield-modal')
         .setTitle('Setup Endfield Token');
 
-    const tokenInput = new TextInputBuilder()
-        .setCustomId('endfield-token')
-        .setLabel('ACCOUNT_TOKEN')
-        .setPlaceholder('Copy from browser DevTools > Cookies > .skport.com > ACCOUNT_TOKEN')
+    const credInput = new TextInputBuilder()
+        .setCustomId('endfield-cred')
+        .setLabel('cred (from cookies)')
+        .setPlaceholder('Copy from DevTools > Cookies > zonai.skport.com > cred')
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(20);
+
+    const skGameRoleInput = new TextInputBuilder()
+        .setCustomId('endfield-sk-game-role')
+        .setLabel('sk_game_role (from cookies)')
+        .setPlaceholder('Format: 3_123456789_asia01 (from SK_GAME_ROLE cookie)')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setMinLength(5);
 
     const nicknameInput = new TextInputBuilder()
         .setCustomId('endfield-nickname')
@@ -33,10 +41,11 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         .setRequired(false)
         .setMaxLength(50);
 
-    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(tokenInput);
-    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(nicknameInput);
+    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(credInput);
+    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(skGameRoleInput);
+    const row3 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(nicknameInput);
 
-    modal.addComponents(row1, row2);
+    modal.addComponents(row1, row2, row3);
 
     await interaction.showModal(modal);
 }
