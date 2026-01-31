@@ -17,21 +17,31 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         .setCustomId('setup-endfield-modal')
         .setTitle('Setup Endfield Token');
 
-    const credInput = new TextInputBuilder()
-        .setCustomId('endfield-cred')
-        .setLabel('cred (from Request Headers)')
-        .setPlaceholder('F12 > Network Tab > Request to zonai.skport.com > Headers > cred')
+    const tokenInput = new TextInputBuilder()
+        .setCustomId('endfield-token')
+        .setLabel('SK_OAUTH_CRED_KEY (from cookies)')
+        .setPlaceholder('Paste cookie value from F12 > Console > run getToken.js')
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(20);
 
-    const skGameRoleInput = new TextInputBuilder()
-        .setCustomId('endfield-sk-game-role')
-        .setLabel('sk_game_role (from Request Headers)')
-        .setPlaceholder('Format: 3_123456789_asia01')
+    const gameIdInput = new TextInputBuilder()
+        .setCustomId('endfield-game-id')
+        .setLabel('Game UID (number only)')
+        .setPlaceholder('Your Endfield UID, example: 10012345')
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
-        .setMinLength(5);
+        .setMinLength(5)
+        .setMaxLength(20);
+
+    const serverInput = new TextInputBuilder()
+        .setCustomId('endfield-server')
+        .setLabel('Server (2=Asia, 3=Americas/Europe)')
+        .setPlaceholder('2')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setMinLength(1)
+        .setMaxLength(1);
 
     const nicknameInput = new TextInputBuilder()
         .setCustomId('endfield-nickname')
@@ -41,11 +51,12 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         .setRequired(false)
         .setMaxLength(50);
 
-    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(credInput);
-    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(skGameRoleInput);
-    const row3 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(nicknameInput);
+    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(tokenInput);
+    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(gameIdInput);
+    const row3 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(serverInput);
+    const row4 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(nicknameInput);
 
-    modal.addComponents(row1, row2, row3);
+    modal.addComponents(row1, row2, row3, row4);
 
     await interaction.showModal(modal);
 }

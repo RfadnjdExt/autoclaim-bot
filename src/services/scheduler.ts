@@ -24,7 +24,7 @@ export async function runDailyClaims(client: Client): Promise<void> {
         const users = await User.find({
             $or: [
                 { 'hoyolab.token': { $exists: true, $ne: '' } },
-                { 'endfield.cred': { $exists: true, $ne: '' } },
+                { 'endfield.skOAuthCredKey': { $exists: true, $ne: '' } },
             ],
         });
 
@@ -51,9 +51,13 @@ export async function runDailyClaims(client: Client): Promise<void> {
             }
 
             // Claim Endfield
-            if (user.endfield?.cred) {
+            if (user.endfield?.skOAuthCredKey) {
                 try {
-                    const endfield = new EndfieldService(user.endfield.cred, user.endfield.skGameRole);
+                    const endfield = new EndfieldService(
+                        user.endfield.skOAuthCredKey,
+                        user.endfield.gameId,
+                        user.endfield.server
+                    );
                     const endfieldResult = await endfield.claim();
                     const resultText = formatEndfieldResult(endfieldResult);
                     results.push('**SKPORT/Endfield**\n' + resultText);

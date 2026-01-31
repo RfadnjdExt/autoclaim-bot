@@ -75,15 +75,18 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
 
     // Endfield status
-    if (user.endfield?.cred) {
+    if (user.endfield?.skOAuthCredKey) {
         const lastClaim = user.endfield.lastClaim
             ? `<t:${Math.floor(user.endfield.lastClaim.getTime() / 1000)}:R>`
             : 'Never';
+        const serverName = user.endfield.server === '2' ? 'Asia' : 'Americas/Europe';
 
         embed.addFields({
             name: '🎮 Endfield',
             value: [
                 `**Account:** ${user.endfield.accountName || 'Unknown'}`,
+                `**UID:** ${user.endfield.gameId}`,
+                `**Server:** ${serverName}`,
                 `**Last Claim:** ${lastClaim}`,
                 `**Result:** ${user.endfield.lastClaimResult || 'N/A'}`,
             ].join('\n'),

@@ -9,85 +9,50 @@ export interface EndfieldClaimResult {
 }
 
 // API URLs
-const SKPORT_WEB_BASE = 'https://zonai.skport.com/web/v1';
-const ATTENDANCE_URL = `${SKPORT_WEB_BASE}/game/endfield/attendance`;
+const ATTENDANCE_URL = 'https://zonai.skport.com/web/v1/game/endfield/attendance';
 
-const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const DEFAULT_HEADERS = {
+    'Accept': '*/*',
+    'Accept-Encoding': 'gzip, deflate, br, zstd',
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0',
+};
 
 export class EndfieldService {
     private client: AxiosInstance;
-    private cred: string;
-    private skGameRole: string;
+    private skOAuthCredKey: string;
+    private gameId: string;
+    private server: string;
+    private language: string;
 
-    constructor(cred: string, skGameRole: string = '') {
-        this.cred = cred;
-        this.skGameRole = skGameRole;
+    /**
+     * @param skOAuthCredKey - SK_OAUTH_CRED_KEY from cookies
+     * @param gameId - Your Endfield game UID (numbers only)
+     * @param server - Server: "2" for Asia, "3" for Americas/Europe
+     * @param language - Language code: en, ja, zh_Hant, zh_Hans, ko, ru_RU
+     */
+    constructor(skOAuthCredKey: string, gameId: string, server: string = '2', language: string = 'en') {
+        this.skOAuthCredKey = skOAuthCredKey;
+        this.gameId = gameId;
+        this.server = server;
+        this.language = language;
 
         this.client = axios.create({
             timeout: 30000,
-            headers: {
-                'User-Agent': USER_AGENT,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Origin': 'https://game.skport.com',
-                'Referer': 'https://game.skport.com/',
-                'platform': '3',
-                'vname': '1.0.0',
-            },
+            headers: DEFAULT_HEADERS,
         });
     }
 
     private getHeaders(): Record<string, string> {
-        const timestamp = Math.floor(Date.now() / 1000).toString();
-        const headers: Record<string, string> = {
-            'cred': this.cred,
-            'timestamp': timestamp,
-            'platform': '3',
-            'vname': '1.0.0',
-            'sk-language': 'en',
+        return {
+            ...DEFAULT_HEADERS,
+            'cred': this.skOAuthCredKey,
+            'sk-game-role': `3_${this.gameId}_${this.server}`,
+            'sk-language': this.language,
         };
-
-        if (this.skGameRole) {
-            headers['sk-game-role'] = this.skGameRole;
-        }
-
-        return headers;
-    }
-
-    async checkAttendance(): Promise<{ hasToday: boolean; records?: any[] }> {
-        try {
-            const response = await this.client.get(ATTENDANCE_URL, {
-                headers: this.getHeaders(),
-            });
-
-            if (response.data.code === 0 && response.data.data) {
-                return {
-                    hasToday: response.data.data.hasToday ?? false,
-                    records: response.data.data.records,
-                };
-            }
-            return { hasToday: false };
-        } catch (error: any) {
-            console.error('Check attendance error:', error.response?.data || error.message);
-            return { hasToday: false };
-        }
     }
 
     async claim(): Promise<EndfieldClaimResult> {
-        // Check if already claimed
-        const attendance = await this.checkAttendance();
-
-        if (attendance.hasToday) {
-            return {
-                success: true,
-                message: 'Already signed in today',
-                alreadyClaimed: true,
-                daysSignedIn: attendance.records?.length,
-            };
-        }
-
-        // Claim attendance
         try {
             const response = await this.client.post(ATTENDANCE_URL, null, {
                 headers: this.getHeaders(),
@@ -96,7 +61,7 @@ export class EndfieldService {
             return this.parseResponse(response.data);
         } catch (error: any) {
             if (error.response?.data) {
-                return this.parseResponse(error.response.data, error.response.status);
+                return this.parseResponse(error.response.data);
             }
             return {
                 success: false,
@@ -105,11 +70,12 @@ export class EndfieldService {
         }
     }
 
-    private parseResponse(data: any, statusCode: number = 200): EndfieldClaimResult {
+    private parseResponse(data: any): EndfieldClaimResult {
         const code = data.code ?? -1;
         const message = data.message || 'Unknown response';
 
-        if (code === 0) {
+        // OK = success
+        if (message === 'OK' || code === 0) {
             const resultData = data.data || {};
             let reward: string | undefined;
 
@@ -138,13 +104,16 @@ export class EndfieldService {
             };
         }
 
-        // Already signed in
+        // Already signed in messages
         if (
+            message.includes('already') ||
+            message.includes('Already') ||
+            message.includes('signed') ||
+            message.includes('claimed') ||
+            message.includes('duplicate') ||
+            message.includes('重复') ||
             code === 1001 ||
-            code === 10001 ||
-            message.toLowerCase().includes('already') ||
-            message.includes('重复签到') ||
-            statusCode === 403
+            code === 10001
         ) {
             return {
                 success: true,
@@ -154,10 +123,10 @@ export class EndfieldService {
         }
 
         // Auth failed
-        if (code === 10002 || code === 401) {
+        if (code === 10002 || code === 401 || code === -1) {
             return {
                 success: false,
-                message: 'Authentication failed. Please refresh your cred token.',
+                message: 'Authentication failed. Token may be expired or invalid.',
             };
         }
 
@@ -168,17 +137,32 @@ export class EndfieldService {
     }
 
     async validateToken(): Promise<{ valid: boolean; message: string }> {
+        // Try to claim - if we get any response other than auth error, token is valid
         try {
-            const response = await this.client.get(`${SKPORT_WEB_BASE}/wiki/me`, {
+            const response = await this.client.post(ATTENDANCE_URL, null, {
                 headers: this.getHeaders(),
             });
 
-            if (response.data.code === 0 && response.data.data?.user) {
+            const message = response.data?.message || '';
+            const code = response.data?.code;
+
+            // If we get OK or already claimed, token is valid
+            if (message === 'OK' || code === 0 || code === 1001 || code === 10001) {
                 return { valid: true, message: 'Token valid' };
             }
-            return { valid: false, message: 'Invalid token' };
+
+            // Auth errors mean invalid token
+            if (code === 10002 || code === 401 || code === -1) {
+                return { valid: false, message: response.data?.message || 'Invalid token' };
+            }
+
+            return { valid: true, message: 'Token appears valid' };
         } catch (error: any) {
-            return { valid: false, message: error.response?.data?.message || 'Token validation failed' };
+            const responseData = error.response?.data;
+            if (responseData?.code === 10002 || responseData?.code === 401) {
+                return { valid: false, message: responseData?.message || 'Invalid token' };
+            }
+            return { valid: false, message: error.message || 'Token validation failed' };
         }
     }
 }
