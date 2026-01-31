@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface IHoyolabData {
     token: string;
@@ -15,9 +15,9 @@ export interface IHoyolabData {
 }
 
 export interface IEndfieldData {
-    skOAuthCredKey: string;    // SK_OAUTH_CRED_KEY from cookies
-    gameId: string;            // Endfield game UID
-    server: string;            // Server: "2" for Asia, "3" for Americas/Europe
+    skOAuthCredKey: string; // SK_OAUTH_CRED_KEY from cookies
+    gameId: string; // Endfield game UID
+    server: string; // Server: "2" for Asia, "3" for Americas/Europe
     accountName: string;
     lastClaim?: Date;
     lastClaimResult?: string;
@@ -37,25 +37,25 @@ export interface IUser extends Document {
 
 const HoyolabSchema = new Schema<IHoyolabData>({
     token: { type: String, required: true },
-    accountName: { type: String, default: 'Unknown' },
+    accountName: { type: String, default: "Unknown" },
     games: {
         genshin: { type: Boolean, default: false },
         starRail: { type: Boolean, default: false },
         honkai3: { type: Boolean, default: false },
         tearsOfThemis: { type: Boolean, default: false },
-        zenlessZoneZero: { type: Boolean, default: false },
+        zenlessZoneZero: { type: Boolean, default: false }
     },
     lastClaim: { type: Date, index: true },
-    lastClaimResult: { type: String },
+    lastClaimResult: { type: String }
 });
 
 const EndfieldSchema = new Schema<IEndfieldData>({
     skOAuthCredKey: { type: String, required: true },
     gameId: { type: String, required: true },
-    server: { type: String, default: '2' },
-    accountName: { type: String, default: 'Unknown' },
+    server: { type: String, default: "2" },
+    accountName: { type: String, default: "Unknown" },
     lastClaim: { type: Date, index: true },
-    lastClaimResult: { type: String },
+    lastClaimResult: { type: String }
 });
 
 const UserSchema = new Schema<IUser>(
@@ -65,12 +65,12 @@ const UserSchema = new Schema<IUser>(
         hoyolab: { type: HoyolabSchema },
         endfield: { type: EndfieldSchema },
         settings: {
-            notifyOnClaim: { type: Boolean, default: true },
-        },
+            notifyOnClaim: { type: Boolean, default: true }
+        }
     },
     {
-        timestamps: true,
+        timestamps: true
     }
 );
 
-export const User = mongoose.model<IUser>('User', UserSchema);
+export const User = mongoose.model<IUser>("User", UserSchema);

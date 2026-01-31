@@ -1,27 +1,33 @@
-import cron from 'node-cron';
-import { Client, TextChannel } from 'discord.js';
-import { User } from '../database/models/User';
-import { HoyolabService, formatHoyolabResults } from './hoyolab';
-import { EndfieldService, formatEndfieldResult } from './endfield';
-import { config } from '../config';
+import cron from "node-cron";
+import { Client, TextChannel } from "discord.js";
+import { User } from "../database/models/User";
+import { HoyolabService, formatHoyolabResults } from "./hoyolab";
+import { EndfieldService, formatEndfieldResult } from "./endfield";
+import { config } from "../config";
 
 export function startScheduler(client: Client): void {
     const { hour, minute } = config.scheduler;
     const cronExpression = `${minute} ${hour} * * *`;
 
-    console.log(`📅 Scheduler set for ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} every day`);
+    console.log(
+        `📅 Scheduler set for ${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")} every day`
+    );
 
-    cron.schedule(cronExpression, async () => {
-        // Only run on Shard 0 to prevent duplicate claims
-        if (client.shard && client.shard.ids[0] !== 0) {
-            return;
+    cron.schedule(
+        cronExpression,
+        async () => {
+            // Only run on Shard 0 to prevent duplicate claims
+            if (client.shard && client.shard.ids[0] !== 0) {
+                return;
+            }
+
+            console.log("🔄 Running scheduled daily claims (Shard 0)...");
+            await runDailyClaims(client);
+        },
+        {
+            timezone: "Asia/Singapore" // UTC+8
         }
-
-        console.log('🔄 Running scheduled daily claims (Shard 0)...');
-        await runDailyClaims(client);
-    }, {
-        timezone: 'Asia/Singapore', // UTC+8
-    });
+    );
 }
 
 export async function runDailyClaims(client: Client): Promise<void> {
@@ -32,15 +38,15 @@ export async function runDailyClaims(client: Client): Promise<void> {
         // Use cursor for memory efficiency
         const cursor = User.find({
             $or: [
-                { 'hoyolab.token': { $exists: true, $ne: '' } },
-                { 'endfield.skOAuthCredKey': { $exists: true, $ne: '' } },
-            ],
+                { "hoyolab.token": { $exists: true, $ne: "" } },
+                { "endfield.skOAuthCredKey": { $exists: true, $ne: "" } }
+            ]
         }).cursor();
 
         let batch: Promise<void>[] = [];
         let count = 0;
 
-        console.log('📊 Starting batch processing for daily claims...');
+        console.log("📊 Starting batch processing for daily claims...");
 
         for await (const user of cursor) {
             batch.push(processUserClaim(client, user));
@@ -60,7 +66,7 @@ export async function runDailyClaims(client: Client): Promise<void> {
 
         console.log(`✅ Daily claims completed. Processed ${count} users.`);
     } catch (error) {
-        console.error('Scheduler error:', error);
+        console.error("Scheduler error:", error);
     }
 }
 
@@ -73,14 +79,14 @@ async function processUserClaim(client: Client, user: any): Promise<void> {
             const hoyolab = new HoyolabService(user.hoyolab.token);
             const hoyolabResults = await hoyolab.claimAll(user.hoyolab.games);
             const resultText = formatHoyolabResults(hoyolabResults);
-            results.push('**Hoyolab**\n' + resultText);
+            results.push("**Hoyolab**\n" + resultText);
 
             // Update last claim
             user.hoyolab.lastClaim = new Date();
             user.hoyolab.lastClaimResult = resultText;
         } catch (error: any) {
             console.error(`Hoyolab claim error for ${user.discordId}:`, error.message);
-            results.push('**Hoyolab**\n❌ Error: ' + error.message);
+            results.push("**Hoyolab**\n❌ Error: " + error.message);
         }
     }
 
@@ -94,14 +100,14 @@ async function processUserClaim(client: Client, user: any): Promise<void> {
             );
             const endfieldResult = await endfield.claim();
             const resultText = formatEndfieldResult(endfieldResult);
-            results.push('**SKPORT/Endfield**\n' + resultText);
+            results.push("**SKPORT/Endfield**\n" + resultText);
 
             // Update last claim
             user.endfield.lastClaim = new Date();
             user.endfield.lastClaimResult = resultText;
         } catch (error: any) {
             console.error(`Endfield claim error for ${user.discordId}:`, error.message);
-            results.push('**SKPORT/Endfield**\n❌ Error: ' + error.message);
+            results.push("**SKPORT/Endfield**\n❌ Error: " + error.message);
         }
     }
 
@@ -117,12 +123,14 @@ async function processUserClaim(client: Client, user: any): Promise<void> {
         try {
             const discordUser = await client.users.fetch(user.discordId);
             await discordUser.send({
-                embeds: [{
-                    title: '📋 Daily Claim Results',
-                    description: results.join('\n\n'),
-                    color: 0x00ff00,
-                    timestamp: new Date().toISOString(),
-                }],
+                embeds: [
+                    {
+                        title: "📋 Daily Claim Results",
+                        description: results.join("\n\n"),
+                        color: 0x00ff00,
+                        timestamp: new Date().toISOString()
+                    }
+                ]
             });
         } catch (error) {
             // User might have DMs disabled or bot is blocked

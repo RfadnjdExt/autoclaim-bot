@@ -1,14 +1,7 @@
-import {
-    SlashCommandBuilder,
-    type ChatInputCommandInteraction,
-    EmbedBuilder,
-    MessageFlags,
-} from 'discord.js';
-import { User } from '../database/models/User';
+import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
+import { User } from "../database/models/User";
 
-export const data = new SlashCommandBuilder()
-    .setName('status')
-    .setDescription('Check your auto-claim status');
+export const data = new SlashCommandBuilder().setName("status").setDescription("Check your auto-claim status");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -17,60 +10,60 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
     if (!user) {
         await interaction.editReply({
-            content: '❌ You have not set up any tokens yet. Use `/setup-hoyolab` or `/setup-endfield` to get started.',
+            content: "❌ You have not set up any tokens yet. Use `/setup-hoyolab` or `/setup-endfield` to get started."
         });
         return;
     }
 
     const embed = new EmbedBuilder()
-        .setTitle('📊 Auto-Claim Status')
-        .setColor(0x5865F2)
+        .setTitle("📊 Auto-Claim Status")
+        .setColor(0x5865f2)
         .setTimestamp()
         .setFooter({ text: `Requested by ${interaction.user.username}` });
 
     // Server time in UTC+8
     const now = new Date();
-    const utc8Time = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-    const timeStr = utc8Time.toISOString().replace('T', ' ').substring(0, 19);
+    const utc8Time = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const timeStr = utc8Time.toISOString().replace("T", " ").substring(0, 19);
 
     embed.setDescription(`🕐 **Server Time (UTC+8):** ${timeStr}`);
 
     // Hoyolab status
     if (user.hoyolab?.token) {
         const gameNames: Record<string, string> = {
-            genshin: 'Genshin Impact',
-            starRail: 'Honkai: Star Rail',
-            honkai3: 'Honkai Impact 3rd',
-            tearsOfThemis: 'Tears of Themis',
-            zenlessZoneZero: 'Zenless Zone Zero',
+            genshin: "Genshin Impact",
+            starRail: "Honkai: Star Rail",
+            honkai3: "Honkai Impact 3rd",
+            tearsOfThemis: "Tears of Themis",
+            zenlessZoneZero: "Zenless Zone Zero"
         };
 
         const enabledGames = user.hoyolab.games
             ? Object.entries(user.hoyolab.games)
-                .filter(([_, enabled]) => enabled)
-                .map(([key]) => gameNames[key] || key)
-                .join(', ') || 'None'
-            : 'None';
+                  .filter(([_, enabled]) => enabled)
+                  .map(([key]) => gameNames[key] || key)
+                  .join(", ") || "None"
+            : "None";
 
         const lastClaim = user.hoyolab.lastClaim
             ? `<t:${Math.floor(user.hoyolab.lastClaim.getTime() / 1000)}:R>`
-            : 'Never';
+            : "Never";
 
         embed.addFields({
-            name: '🌟 Hoyolab',
+            name: "🌟 Hoyolab",
             value: [
-                `**Account:** ${user.hoyolab.accountName || 'Unknown'}`,
+                `**Account:** ${user.hoyolab.accountName || "Unknown"}`,
                 `**Games:** ${enabledGames}`,
                 `**Last Claim:** ${lastClaim}`,
-                `**Result:** ${user.hoyolab.lastClaimResult || 'N/A'}`,
-            ].join('\n'),
-            inline: false,
+                `**Result:** ${user.hoyolab.lastClaimResult || "N/A"}`
+            ].join("\n"),
+            inline: false
         });
     } else {
         embed.addFields({
-            name: '🌟 Hoyolab',
-            value: '❌ Not configured',
-            inline: false,
+            name: "🌟 Hoyolab",
+            value: "❌ Not configured",
+            inline: false
         });
     }
 
@@ -78,33 +71,33 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     if (user.endfield?.skOAuthCredKey) {
         const lastClaim = user.endfield.lastClaim
             ? `<t:${Math.floor(user.endfield.lastClaim.getTime() / 1000)}:R>`
-            : 'Never';
-        const serverName = user.endfield.server === '2' ? 'Asia' : 'Americas/Europe';
+            : "Never";
+        const serverName = user.endfield.server === "2" ? "Asia" : "Americas/Europe";
 
         embed.addFields({
-            name: '🎮 Endfield',
+            name: "🎮 Endfield",
             value: [
-                `**Account:** ${user.endfield.accountName || 'Unknown'}`,
+                `**Account:** ${user.endfield.accountName || "Unknown"}`,
                 `**UID:** ${user.endfield.gameId}`,
                 `**Server:** ${serverName}`,
                 `**Last Claim:** ${lastClaim}`,
-                `**Result:** ${user.endfield.lastClaimResult || 'N/A'}`,
-            ].join('\n'),
-            inline: false,
+                `**Result:** ${user.endfield.lastClaimResult || "N/A"}`
+            ].join("\n"),
+            inline: false
         });
     } else {
         embed.addFields({
-            name: '🎮 Endfield',
-            value: '❌ Not configured',
-            inline: false,
+            name: "🎮 Endfield",
+            value: "❌ Not configured",
+            inline: false
         });
     }
 
     // Settings
     embed.addFields({
-        name: '⚙️ Settings',
-        value: `**Notify on Claim:** ${user.settings?.notifyOnClaim ? '✅ Enabled' : '❌ Disabled'}`,
-        inline: false,
+        name: "⚙️ Settings",
+        value: `**Notify on Claim:** ${user.settings?.notifyOnClaim ? "✅ Enabled" : "❌ Disabled"}`,
+        inline: false
     });
 
     await interaction.editReply({ embeds: [embed] });

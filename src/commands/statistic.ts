@@ -1,10 +1,10 @@
-import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, version as djsVersion } from 'discord.js';
-import os from 'os';
-import { version as nodeVersion } from 'process';
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, version as djsVersion } from "discord.js";
+import os from "os";
+import { version as nodeVersion } from "process";
 
 export const data = new SlashCommandBuilder()
-    .setName('statistic')
-    .setDescription('Displays detailed bot and system statistics');
+    .setName("statistic")
+    .setDescription("Displays detailed bot and system statistics");
 
 export async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply();
@@ -40,30 +40,30 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             totalUsers = results.reduce((acc, val) => acc + val.users, 0);
             totalChannels = results.reduce((acc, val) => acc + val.channels, 0);
         } catch (error) {
-            console.error('Error fetching shard stats:', error);
+            console.error("Error fetching shard stats:", error);
         }
     }
 
     const embed = new EmbedBuilder()
         .setTitle(`${client.user?.username} Statistics`)
-        .setColor('#0099ff')
+        .setColor("#0099ff")
         .addFields(
-            { name: '• Owner', value: owner?.toString() || 'Unknown', inline: false },
-            { name: '• Total Users', value: totalUsers.toString(), inline: true },
-            { name: '• Total Guilds', value: totalGuilds.toString(), inline: true },
-            { name: '• Total Channels', value: totalChannels.toString(), inline: true },
-            { name: '• Total Shards', value: client.shard ? client.shard.count.toString() : '1', inline: true },
+            { name: "• Owner", value: owner?.toString() || "Unknown", inline: false },
+            { name: "• Total Users", value: totalUsers.toString(), inline: true },
+            { name: "• Total Guilds", value: totalGuilds.toString(), inline: true },
+            { name: "• Total Channels", value: totalChannels.toString(), inline: true },
+            { name: "• Total Shards", value: client.shard ? client.shard.count.toString() : "1", inline: true },
             // { name: '• Voice Connections', value: client.voice.adapters.size.toString(), inline: true }, // Simple check
-            { name: '• Uptime', value: formatUptime(process.uptime()), inline: true },
-            { name: '• Network Latency', value: `${client.ws.ping}ms`, inline: true },
-            { name: '• Memory Usage', value: `${memUsage} MB`, inline: true },
-            { name: '• CPU', value: `${os.cpus().length} cores - ${os.arch()}`, inline: true },
-            { name: '• Model', value: cpu?.model || 'Unknown', inline: false },
-            { name: '• Free Memory', value: `${freeMem} bytes`, inline: true },
-            { name: '• Platform', value: `${os.platform()} ${os.release()}`, inline: true },
-            { name: '• Node.js', value: nodeVersion, inline: true },
-            { name: '• Discord.js', value: `v${djsVersion}`, inline: true },
-            { name: '• OS Uptime', value: formatUptime(osUptime), inline: true },
+            { name: "• Uptime", value: formatUptime(process.uptime()), inline: true },
+            { name: "• Network Latency", value: `${client.ws.ping}ms`, inline: true },
+            { name: "• Memory Usage", value: `${memUsage} MB`, inline: true },
+            { name: "• CPU", value: `${os.cpus().length} cores - ${os.arch()}`, inline: true },
+            { name: "• Model", value: cpu?.model || "Unknown", inline: false },
+            { name: "• Free Memory", value: `${freeMem} bytes`, inline: true },
+            { name: "• Platform", value: `${os.platform()} ${os.release()}`, inline: true },
+            { name: "• Node.js", value: nodeVersion, inline: true },
+            { name: "• Discord.js", value: `v${djsVersion}`, inline: true },
+            { name: "• OS Uptime", value: formatUptime(osUptime), inline: true }
         )
         .setTimestamp();
 
@@ -82,5 +82,5 @@ function formatUptime(seconds: number): string {
     if (minutes > 0) parts.push(`${minutes}m`);
     parts.push(`${secs}s`);
 
-    return parts.join(' ');
+    return parts.join(" ");
 }

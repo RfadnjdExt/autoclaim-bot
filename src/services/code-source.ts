@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 export interface RedeemCode {
     code: string;
@@ -14,15 +14,15 @@ export interface HashblenResponse {
 }
 
 export class CodeSourceService {
-    private static API_URL = 'https://db.hashblen.com/codes';
+    private static API_URL = "https://db.hashblen.com/codes";
 
     static async getCodes(): Promise<HashblenResponse | null> {
         try {
             const response = await axios.get<HashblenResponse>(this.API_URL, {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                 },
-                timeout: 10000,
+                timeout: 10000
             });
 
             if (response.status === 200 && response.data) {
@@ -30,7 +30,7 @@ export class CodeSourceService {
             }
             return null;
         } catch (error) {
-            console.error('Failed to fetch codes from Hashblen:', error);
+            console.error("Failed to fetch codes from Hashblen:", error);
             return null;
         }
     }

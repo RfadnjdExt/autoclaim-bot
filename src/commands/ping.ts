@@ -1,43 +1,37 @@
-import {
-    SlashCommandBuilder,
-    type ChatInputCommandInteraction,
-    EmbedBuilder,
-} from 'discord.js';
+import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 
-export const data = new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription('Check bot latency');
+export const data = new SlashCommandBuilder().setName("ping").setDescription("Check bot latency");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const startTime = Date.now();
-    await interaction.reply({ content: '🏓 Pinging...' });
+    await interaction.reply({ content: "🏓 Pinging..." });
 
     const roundtrip = Date.now() - startTime;
     const wsLatency = interaction.client.ws.ping;
 
     const embed = new EmbedBuilder()
-        .setTitle('🏓 Pong!')
+        .setTitle("🏓 Pong!")
         .setColor(wsLatency < 100 ? 0x00ff00 : wsLatency < 200 ? 0xffff00 : 0xff0000)
         .addFields(
             {
-                name: '📡 Bot Latency',
+                name: "📡 Bot Latency",
                 value: `\`${roundtrip}ms\``,
-                inline: true,
+                inline: true
             },
             {
-                name: '💓 WebSocket',
+                name: "💓 WebSocket",
                 value: `\`${wsLatency}ms\``,
-                inline: true,
+                inline: true
             },
             {
-                name: '📊 Uptime',
+                name: "📊 Uptime",
                 value: `\`${formatUptime(interaction.client.uptime || 0)}\``,
-                inline: true,
+                inline: true
             }
         )
         .setTimestamp();
 
-    await interaction.editReply({ content: '', embeds: [embed] });
+    await interaction.editReply({ content: "", embeds: [embed] });
 }
 
 function formatUptime(ms: number): string {

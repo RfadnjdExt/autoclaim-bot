@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 export interface EndfieldClaimResult {
     success: boolean;
@@ -7,14 +7,14 @@ export interface EndfieldClaimResult {
 }
 
 // Exact URL from canaria3406/skport-auto-sign
-const ATTENDANCE_URL = 'https://zonai.skport.com/web/v1/game/endfield/attendance';
+const ATTENDANCE_URL = "https://zonai.skport.com/web/v1/game/endfield/attendance";
 
 // Exact headers from canaria3406/skport-auto-sign
 const DEFAULT_HEADERS = {
-    'Accept': '*/*',
-    'Accept-Encoding': 'gzip, deflate, br, zstd',
-    'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0',
+    Accept: "*/*",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
 };
 
 /**
@@ -27,52 +27,56 @@ const DEFAULT_HEADERS = {
 export async function claimEndfield(
     SK_OAUTH_CRED_KEY: string,
     id: string,
-    server: string = '2',
-    language: string = 'en'
+    server: string = "2",
+    language: string = "en"
 ): Promise<EndfieldClaimResult> {
     // Build headers exactly like canaria3406
     const headers = {
         ...DEFAULT_HEADERS,
-        'cred': SK_OAUTH_CRED_KEY,
-        'sk-game-role': `3_${id}_${server}`,
-        'sk-language': language,
+        cred: SK_OAUTH_CRED_KEY,
+        "sk-game-role": `3_${id}_${server}`,
+        "sk-language": language
     };
 
     try {
-        const response = await axios.post(ATTENDANCE_URL, {}, {
-            headers,
-            timeout: 30000,
-        });
+        const response = await axios.post(
+            ATTENDANCE_URL,
+            {},
+            {
+                headers,
+                timeout: 30000
+            }
+        );
 
         const responseJson = response.data;
-        const checkInResult = responseJson.message || 'Unknown';
+        const checkInResult = responseJson.message || "Unknown";
 
         // OK = success (exactly like canaria3406 checks)
-        if (checkInResult === 'OK') {
+        if (checkInResult === "OK") {
             return {
                 success: true,
-                message: 'OK',
+                message: "OK"
             };
         }
 
         // Already claimed or other message
         return {
-            success: checkInResult.includes('already') || checkInResult.includes('Already'),
+            success: checkInResult.includes("already") || checkInResult.includes("Already"),
             message: checkInResult,
-            alreadyClaimed: checkInResult.includes('already') || checkInResult.includes('Already'),
+            alreadyClaimed: checkInResult.includes("already") || checkInResult.includes("Already")
         };
     } catch (error: any) {
         // Handle axios error responses
         if (error.response?.data) {
-            const checkInResult = error.response.data.message || 'Request failed';
+            const checkInResult = error.response.data.message || "Request failed";
             return {
                 success: false,
-                message: checkInResult,
+                message: checkInResult
             };
         }
         return {
             success: false,
-            message: error.message || 'Request failed',
+            message: error.message || "Request failed"
         };
     }
 }
@@ -84,7 +88,7 @@ export class EndfieldService {
     private server: string;
     private language: string;
 
-    constructor(SK_OAUTH_CRED_KEY: string, id: string, server: string = '2', language: string = 'en') {
+    constructor(SK_OAUTH_CRED_KEY: string, id: string, server: string = "2", language: string = "en") {
         this.SK_OAUTH_CRED_KEY = SK_OAUTH_CRED_KEY;
         this.id = id;
         this.server = server;

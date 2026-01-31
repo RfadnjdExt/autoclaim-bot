@@ -1,32 +1,31 @@
-import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { User } from '../database/models/User';
-import { HoyolabService, type GameAccount } from '../services/hoyolab';
-import { CodeSourceService, type RedeemCode } from '../services/code-source';
+import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { User } from "../database/models/User";
+import { HoyolabService, type GameAccount } from "../services/hoyolab";
+import { CodeSourceService, type RedeemCode } from "../services/code-source";
 
 export const data = new SlashCommandBuilder()
-    .setName('redeem')
-    .setDescription('Redeem gift codes for your HoYoverse accounts')
+    .setName("redeem")
+    .setDescription("Redeem gift codes for your HoYoverse accounts")
     .addSubcommand(subcommand =>
         subcommand
-            .setName('manual')
-            .setDescription('Redeem a specific code manually')
+            .setName("manual")
+            .setDescription("Redeem a specific code manually")
             .addStringOption(option =>
-                option.setName('game')
-                    .setDescription('The game to redeem for')
+                option
+                    .setName("game")
+                    .setDescription("The game to redeem for")
                     .setRequired(true)
                     .addChoices(
-                        { name: 'Genshin Impact', value: 'genshin' },
-                        { name: 'Honkai: Star Rail', value: 'starRail' },
-                        { name: 'Zenless Zone Zero', value: 'zenlessZoneZero' }
-                    ))
-            .addStringOption(option =>
-                option.setName('code')
-                    .setDescription('The redemption code')
-                    .setRequired(true)))
+                        { name: "Genshin Impact", value: "genshin" },
+                        { name: "Honkai: Star Rail", value: "starRail" },
+                        { name: "Zenless Zone Zero", value: "zenlessZoneZero" }
+                    )
+            )
+            .addStringOption(option => option.setName("code").setDescription("The redemption code").setRequired(true))
+    )
     .addSubcommand(subcommand =>
-        subcommand
-            .setName('auto')
-            .setDescription('Automatically check and redeem available codes from community DB'));
+        subcommand.setName("auto").setDescription("Automatically check and redeem available codes from community DB")
+    );
 
 async function redeemForUser(
     hoyolab: HoyolabService,
@@ -48,7 +47,7 @@ async function redeemForUser(
             // Rate limit delay (5 seconds to avoid -1048 and cooldown errors)
             await new Promise(r => setTimeout(r, 5000));
             const result = await hoyolab.redeemCode(gameKey, account, code);
-            const icon = result.success ? '✅' : '❌';
+            const icon = result.success ? "✅" : "❌";
             results.push(`${icon} **${accInfo}** (${code}): ${result.message}`);
         }
     }
@@ -61,7 +60,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     const user = await User.findOne({ discordId: interaction.user.id });
     if (!user || !user.hoyolab?.token) {
         await interaction.editReply({
-            content: '❌ You need to setup your Hoyolab account first using `/setup-hoyolab`.'
+            content: "❌ You need to setup your Hoyolab account first using `/setup-hoyolab`."
         });
         return;
     }
@@ -70,26 +69,25 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     const subcommand = interaction.options.getSubcommand();
 
     try {
-        if (subcommand === 'manual') {
-            const game = interaction.options.getString('game', true);
-            const code = interaction.options.getString('code', true).trim();
+        if (subcommand === "manual") {
+            const game = interaction.options.getString("game", true);
+            const code = interaction.options.getString("code", true).trim();
 
             const results = await redeemForUser(hoyolab, game, [code]);
 
             const embed = new EmbedBuilder()
-                .setTitle('Manual Redemption Result')
-                .setColor(0x00FF00) // Green
-                .setDescription(results.join('\n') || 'No actions taken.')
+                .setTitle("Manual Redemption Result")
+                .setColor(0x00ff00) // Green
+                .setDescription(results.join("\n") || "No actions taken.")
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [embed] });
-
-        } else if (subcommand === 'auto') {
-            await interaction.editReply('⏳ Fetching codes and redeeming... This may take a moment.');
+        } else if (subcommand === "auto") {
+            await interaction.editReply("⏳ Fetching codes and redeeming... This may take a moment.");
 
             const sourceCodes = await CodeSourceService.getCodes();
             if (!sourceCodes) {
-                await interaction.editReply('❌ Failed to fetch active codes from the database.');
+                await interaction.editReply("❌ Failed to fetch active codes from the database.");
                 return;
             }
 
@@ -102,41 +100,41 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
             // 1. Genshin
             if (sourceCodes.genshin?.length) {
                 const codes = sourceCodes.genshin.map(c => c.code);
-                messages.push(...await redeemForUser(hoyolab, 'genshin', codes));
+                messages.push(...(await redeemForUser(hoyolab, "genshin", codes)));
             }
 
             // 2. Star Rail
             if (sourceCodes.hsr?.length) {
                 const codes = sourceCodes.hsr.map(c => c.code);
-                messages.push(...await redeemForUser(hoyolab, 'starRail', codes));
+                messages.push(...(await redeemForUser(hoyolab, "starRail", codes)));
             }
 
             // 3. ZZZ
             if (sourceCodes.zzz?.length) {
                 const codes = sourceCodes.zzz.map(c => c.code);
-                messages.push(...await redeemForUser(hoyolab, 'zenlessZoneZero', codes));
+                messages.push(...(await redeemForUser(hoyolab, "zenlessZoneZero", codes)));
             }
 
             // Split message if too long (Discord limit is 4096 for description, but let's be safe)
-            const fullLog = messages.join('\n');
+            const fullLog = messages.join("\n");
             if (fullLog.length > 4000) {
                 // Simple truncation for now, or send as file
-                const buffer = Buffer.from(fullLog, 'utf-8');
+                const buffer = Buffer.from(fullLog, "utf-8");
                 await interaction.editReply({
-                    content: '✅ Auto-redemption complete! Logic too long to display, see attachment.',
-                    files: [{ attachment: buffer, name: 'redemption-log.txt' }]
+                    content: "✅ Auto-redemption complete! Logic too long to display, see attachment.",
+                    files: [{ attachment: buffer, name: "redemption-log.txt" }]
                 });
             } else {
                 const embed = new EmbedBuilder()
-                    .setTitle('Auto Redemption Result')
-                    .setColor(0x0099FF)
-                    .setDescription(fullLog || 'No codes found or no matching games enabled.')
+                    .setTitle("Auto Redemption Result")
+                    .setColor(0x0099ff)
+                    .setDescription(fullLog || "No codes found or no matching games enabled.")
                     .setTimestamp();
                 await interaction.editReply({ content: null, embeds: [embed] });
             }
         }
     } catch (error: any) {
-        console.error('Redeem command error:', error);
+        console.error("Redeem command error:", error);
         await interaction.editReply({
             content: `❌ An error occurred: ${error.message}`
         });

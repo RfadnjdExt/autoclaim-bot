@@ -5,48 +5,46 @@ import {
     TextInputBuilder,
     TextInputStyle,
     ActionRowBuilder,
-    type ModalActionRowComponentBuilder,
-} from 'discord.js';
+    type ModalActionRowComponentBuilder
+} from "discord.js";
 
 export const data = new SlashCommandBuilder()
-    .setName('setup-endfield')
-    .setDescription('Setup your SKPORT/Endfield token for auto daily claim');
+    .setName("setup-endfield")
+    .setDescription("Setup your SKPORT/Endfield token for auto daily claim");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const modal = new ModalBuilder()
-        .setCustomId('setup-endfield-modal')
-        .setTitle('Setup Endfield Token');
+    const modal = new ModalBuilder().setCustomId("setup-endfield-modal").setTitle("Setup Endfield Token");
 
     const tokenInput = new TextInputBuilder()
-        .setCustomId('endfield-token')
-        .setLabel('SK_OAUTH_CRED_KEY (from cookies)')
-        .setPlaceholder('Paste cookie value from F12 > Console > run getToken.js')
+        .setCustomId("endfield-token")
+        .setLabel("SK_OAUTH_CRED_KEY (from cookies)")
+        .setPlaceholder("Paste cookie value from F12 > Console > run getToken.js")
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(20);
 
     const gameIdInput = new TextInputBuilder()
-        .setCustomId('endfield-game-id')
-        .setLabel('Game UID (number only)')
-        .setPlaceholder('Your Endfield UID, example: 10012345')
+        .setCustomId("endfield-game-id")
+        .setLabel("Game UID (number only)")
+        .setPlaceholder("Your Endfield UID, example: 10012345")
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMinLength(5)
         .setMaxLength(20);
 
     const serverInput = new TextInputBuilder()
-        .setCustomId('endfield-server')
-        .setLabel('Server (2=Asia, 3=Americas/Europe)')
-        .setPlaceholder('2')
+        .setCustomId("endfield-server")
+        .setLabel("Server (2=Asia, 3=Americas/Europe)")
+        .setPlaceholder("2")
         .setStyle(TextInputStyle.Short)
         .setRequired(true)
         .setMinLength(1)
         .setMaxLength(1);
 
     const nicknameInput = new TextInputBuilder()
-        .setCustomId('endfield-nickname')
-        .setLabel('Account Nickname (optional)')
-        .setPlaceholder('Your nickname')
+        .setCustomId("endfield-nickname")
+        .setLabel("Account Nickname (optional)")
+        .setPlaceholder("Your nickname")
         .setStyle(TextInputStyle.Short)
         .setRequired(false)
         .setMaxLength(50);

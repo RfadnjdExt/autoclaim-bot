@@ -1,28 +1,22 @@
-import {
-    Client,
-    GatewayIntentBits,
-    Events,
-} from 'discord.js';
-import { config } from './config';
-import { connectDatabase } from './database/connection';
-import { startScheduler } from './services/scheduler';
-import { handleInteraction } from './handlers/interaction';
-import { startPresenceUpdater } from './utils/presence';
+import { Client, GatewayIntentBits, Events } from "discord.js";
+import { config } from "./config";
+import { connectDatabase } from "./database/connection";
+import { startScheduler } from "./services/scheduler";
+import { handleInteraction } from "./handlers/interaction";
+import { startPresenceUpdater } from "./utils/presence";
 
 // Create client
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-    ],
+    intents: [GatewayIntentBits.Guilds],
     ws: {
         properties: {
-            browser: 'Discord iOS',
-        },
-    } as any,
+            browser: "Discord iOS"
+        }
+    } as any
 });
 
 // Ready event
-client.once(Events.ClientReady, (readyClient) => {
+client.once(Events.ClientReady, readyClient => {
     console.log(`✅ Logged in as ${readyClient.user.tag}`);
     console.log(`📊 Serving ${readyClient.guilds.cache.size} guilds`);
 
@@ -38,7 +32,7 @@ client.on(Events.InteractionCreate, handleInteraction);
 
 // Main function
 async function main() {
-    console.log('🚀 Starting Auto-Claim Bot Shard...');
+    console.log("🚀 Starting Auto-Claim Bot Shard...");
 
     // Connect to database
     await connectDatabase();
@@ -48,12 +42,12 @@ async function main() {
 }
 
 // Handle errors
-process.on('unhandledRejection', (error) => {
-    console.error('Unhandled rejection:', error);
+process.on("unhandledRejection", error => {
+    console.error("Unhandled rejection:", error);
 });
 
-process.on('uncaughtException', (error) => {
-    console.error('Uncaught exception:', error);
+process.on("uncaughtException", error => {
+    console.error("Uncaught exception:", error);
     process.exit(1);
 });
 

@@ -1,5 +1,5 @@
-import { createHash } from 'crypto';
-import axios, { type AxiosInstance } from 'axios';
+import { createHash } from "crypto";
+import axios, { type AxiosInstance } from "axios";
 
 export interface ClaimResult {
     success: boolean;
@@ -18,37 +18,38 @@ interface GameConfig {
 
 const GAMES: Record<string, GameConfig> = {
     genshin: {
-        name: 'Genshin Impact',
-        url: 'https://sg-hk4e-api.hoyolab.com/event/sol/sign',
-        actId: 'e202102251931481',
-        bizName: 'hk4e_global',
+        name: "Genshin Impact",
+        url: "https://sg-hk4e-api.hoyolab.com/event/sol/sign",
+        actId: "e202102251931481",
+        bizName: "hk4e_global"
     },
     starRail: {
-        name: 'Honkai: Star Rail',
-        url: 'https://sg-public-api.hoyolab.com/event/luna/os/sign',
-        actId: 'e202303301540311',
-        bizName: 'hkrpg_global',
+        name: "Honkai: Star Rail",
+        url: "https://sg-public-api.hoyolab.com/event/luna/os/sign",
+        actId: "e202303301540311",
+        bizName: "hkrpg_global"
     },
     zenlessZoneZero: {
-        name: 'Zenless Zone Zero',
-        url: 'https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign',
-        actId: 'e202406031448091',
-        bizName: 'nap_global',
+        name: "Zenless Zone Zero",
+        url: "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign",
+        actId: "e202406031448091",
+        bizName: "nap_global",
         extraHeaders: {
-            'x-rpc-signgame': 'zzz',
-        },
+            "x-rpc-signgame": "zzz"
+        }
     }
 };
 
 const DEFAULT_HEADERS = {
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive',
-    'x-rpc-app_version': '2.34.1',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    'x-rpc-client_type': '4',
-    'Referer': 'https://act.hoyolab.com/',
-    'Origin': 'https://act.hoyolab.com',
+    Accept: "application/json, text/plain, */*",
+    "Accept-Encoding": "gzip, deflate, br",
+    Connection: "keep-alive",
+    "x-rpc-app_version": "2.34.1",
+    "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "x-rpc-client_type": "4",
+    Referer: "https://act.hoyolab.com/",
+    Origin: "https://act.hoyolab.com"
 };
 
 export interface GameAccount {
@@ -72,16 +73,16 @@ export class HoyolabService {
             timeout: 30000,
             headers: {
                 ...DEFAULT_HEADERS,
-                'Cookie': token,
-            },
+                Cookie: token
+            }
         });
     }
 
     private generateDS(): string {
-        const salt = '6s25p5ox5y14umn1p61aqyyvbvvl3lrt';
+        const salt = "6s25p5ox5y14umn1p61aqyyvbvvl3lrt";
         const t = Math.floor(Date.now() / 1000);
         const r = Math.random().toString(36).substring(2, 8);
-        const h = createHash('md5').update(`salt=${salt}&t=${t}&r=${r}`).digest('hex');
+        const h = createHash("md5").update(`salt=${salt}&t=${t}&r=${r}`).digest("hex");
         return `${t},${r},${h}`;
     }
 
@@ -91,7 +92,7 @@ export class HoyolabService {
             return {
                 success: false,
                 game: gameKey,
-                message: 'Unknown game',
+                message: "Unknown game"
             };
         }
 
@@ -106,21 +107,21 @@ export class HoyolabService {
             const response = await this.client.post(url, null, { headers });
             const data = response.data;
 
-            if (data.retcode === 0 || data.message === 'OK') {
+            if (data.retcode === 0 || data.message === "OK") {
                 return {
                     success: true,
                     game: game.name,
-                    message: 'Claimed successfully!',
+                    message: "Claimed successfully!"
                 };
             }
 
             // Already claimed today
-            if (data.retcode === -5003 || data.message?.includes('already')) {
+            if (data.retcode === -5003 || data.message?.includes("already")) {
                 return {
                     success: true,
                     game: game.name,
-                    message: 'Already claimed today',
-                    alreadyClaimed: true,
+                    message: "Already claimed today",
+                    alreadyClaimed: true
                 };
             }
 
@@ -129,20 +130,20 @@ export class HoyolabService {
                 return {
                     success: false,
                     game: game.name,
-                    message: 'CAPTCHA required - please claim manually',
+                    message: "CAPTCHA required - please claim manually"
                 };
             }
 
             return {
                 success: false,
                 game: game.name,
-                message: data.message || 'Unknown error',
+                message: data.message || "Unknown error"
             };
         } catch (error: any) {
             return {
                 success: false,
                 game: game.name,
-                message: error.message || 'Request failed',
+                message: error.message || "Request failed"
             };
         }
     }
@@ -169,16 +170,16 @@ export class HoyolabService {
         try {
             // Try to check Genshin daily info to validate token
             const response = await this.client.get(
-                'https://sg-hk4e-api.hoyolab.com/event/sol/info?lang=en-us&act_id=e202102251931481'
+                "https://sg-hk4e-api.hoyolab.com/event/sol/info?lang=en-us&act_id=e202102251931481"
             );
 
             if (response.data.retcode === 0) {
-                return { valid: true, message: 'Token valid' };
+                return { valid: true, message: "Token valid" };
             }
 
-            return { valid: false, message: response.data.message || 'Invalid token' };
+            return { valid: false, message: response.data.message || "Invalid token" };
         } catch (error: any) {
-            return { valid: false, message: error.message || 'Validation failed' };
+            return { valid: false, message: error.message || "Validation failed" };
         }
     }
 
@@ -200,30 +201,34 @@ export class HoyolabService {
         }
     }
 
-    async redeemCode(gameKey: string, account: GameAccount, code: string): Promise<{ success: boolean; message: string }> {
+    async redeemCode(
+        gameKey: string,
+        account: GameAccount,
+        code: string
+    ): Promise<{ success: boolean; message: string }> {
         const game = GAMES[gameKey];
-        if (!game) return { success: false, message: 'Unknown game' };
+        if (!game) return { success: false, message: "Unknown game" };
 
-        if (!this.token.includes('cookie_token') && !this.token.includes('cookie_token_v2')) {
+        if (!this.token.includes("cookie_token") && !this.token.includes("cookie_token_v2")) {
             return {
                 success: false,
-                message: 'Cookie missing `cookie_token`. Please get a fresh cookie from the official redemption page.'
+                message: "Cookie missing `cookie_token`. Please get a fresh cookie from the official redemption page."
             };
         }
 
         // Determine base URL based on game
-        let baseUrl = 'https://sg-hk4e-api.hoyolab.com';
+        let baseUrl = "https://sg-hk4e-api.hoyolab.com";
 
-        if (gameKey === 'starRail') {
-            baseUrl = 'https://sg-hkrpg-api.hoyolab.com';
-        } else if (gameKey === 'zenlessZoneZero') {
-            baseUrl = 'https://public-operation-nap.hoyoverse.com';
+        if (gameKey === "starRail") {
+            baseUrl = "https://sg-hkrpg-api.hoyolab.com";
+        } else if (gameKey === "zenlessZoneZero") {
+            baseUrl = "https://public-operation-nap.hoyoverse.com";
         }
 
         const params = new URLSearchParams({
             uid: String(account.game_uid),
             region: account.region,
-            lang: 'en',
+            lang: "en",
             cdkey: code,
             game_biz: game.bizName
         });
@@ -235,16 +240,17 @@ export class HoyolabService {
             console.log(`[Redeem] URL: ${url}`);
 
             const headers = {
-                'x-rpc-app_version': '1.5.0',
-                'x-rpc-client_type': '5',
-                'x-rpc-language': 'en-us',
-                'DS': this.generateDS(),
-                'Cookie': this.token,
+                "x-rpc-app_version": "1.5.0",
+                "x-rpc-client_type": "5",
+                "x-rpc-language": "en-us",
+                DS: this.generateDS(),
+                Cookie: this.token,
                 // Using the specific User-Agent from qingque reference if possible, or keeping standard one.
                 // qingque uses a standard browser UA in headers but generates DS with "5" (Others/Web).
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Origin': 'https://act.hoyolab.com',
-                'Referer': 'https://act.hoyolab.com/'
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                Origin: "https://act.hoyolab.com",
+                Referer: "https://act.hoyolab.com/"
             };
 
             const response = await this.client.get(url, { headers });
@@ -253,25 +259,25 @@ export class HoyolabService {
             console.log(`[Redeem] Response for ${code}:`, JSON.stringify(data));
 
             if (data.retcode === 0) {
-                return { success: true, message: 'Redeemed successfully' };
+                return { success: true, message: "Redeemed successfully" };
             }
 
             return { success: false, message: data.message };
         } catch (error: any) {
-            return { success: false, message: error.message || 'Request failed' };
+            return { success: false, message: error.message || "Request failed" };
         }
     }
 }
 
 export function formatHoyolabResults(results: ClaimResult[]): string {
     if (results.length === 0) {
-        return 'No games configured for claiming';
+        return "No games configured for claiming";
     }
 
     return results
         .map(r => {
-            const icon = r.success ? (r.alreadyClaimed ? '🔄' : '✅') : '❌';
+            const icon = r.success ? (r.alreadyClaimed ? "🔄" : "✅") : "❌";
             return `${icon} **${r.game}**: ${r.message}`;
         })
-        .join('\n');
+        .join("\n");
 }
