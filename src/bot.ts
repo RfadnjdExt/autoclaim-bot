@@ -16,7 +16,7 @@ const client = new Client({
     ],
     ws: {
         properties: {
-            $browser: 'Discord iOS',
+            browser: 'Discord iOS',
         },
     } as any,
 });
