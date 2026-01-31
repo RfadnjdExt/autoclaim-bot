@@ -5,8 +5,24 @@ import { HoyolabService } from '../services/hoyolab';
 export async function handleHoyolabModal(interaction: ModalSubmitInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const token = interaction.fields.getTextInputValue('hoyolab-token').trim();
+    // Sanitize token: remove newlines, carriage returns, and quotes
+    const token = interaction.fields.getTextInputValue('hoyolab-token')
+        .trim()
+        .replace(/[\r\n"]+/g, '');
+
     const nickname = interaction.fields.getTextInputValue('hoyolab-nickname')?.trim() || 'Unknown';
+
+    // Validate token quality
+    const hasLToken = token.includes('ltoken') || token.includes('ltoken_v2');
+    const hasCookieToken = token.includes('cookie_token') || token.includes('cookie_token_v2');
+
+    let warningMsg = '';
+    if (!hasLToken) {
+        warningMsg += '\n⚠️ **Critical:** `ltoken` is missing. Daily check-in might fail.';
+    }
+    if (!hasCookieToken) {
+        warningMsg += '\n⚠️ **Warning:** `cookie_token` is missing. The `/redeem` command will NOT work. (Get cookie from https://genshin.hoyoverse.com/en/gift to fix this)';
+    }
 
     // Validate token
     const service = new HoyolabService(token);
@@ -75,7 +91,7 @@ export async function handleHoyolabModal(interaction: ModalSubmitInteraction): P
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
 
     await interaction.editReply({
-        content: `✅ **Token Verified!**\n\nAccount: **${nickname}**\n\nPlease select which games you want to auto-claim from the dropdown below:`,
+        content: `✅ Hoyolab token saved for **${nickname}**!${warningMsg}\n⬇️ **Now, please select your games below:**`,
         components: [row],
     });
 }
