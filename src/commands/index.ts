@@ -8,8 +8,8 @@ import * as settings from "./settings";
 import * as help from "./help";
 import * as ping from "./ping";
 import * as embedSettings from "./embed-settings";
-
 import * as statistic from "./statistic";
+import * as speedtest from "./speedtest";
 
 export const commands = [
     setupHoyolab,
@@ -22,7 +22,8 @@ export const commands = [
     ping,
     statistic,
     redeem,
-    embedSettings
+    embedSettings,
+    speedtest
 ];
 
 export const commandsData = commands.map(cmd => cmd.data);
