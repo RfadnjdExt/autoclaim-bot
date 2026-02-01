@@ -37,6 +37,18 @@ const GAMES: Record<string, GameConfig> = {
         extraHeaders: {
             "x-rpc-signgame": "zzz"
         }
+    },
+    honkai3: {
+        name: "Honkai Impact 3rd",
+        url: "https://sg-public-api.hoyolab.com/event/mani/sign",
+        actId: "e202110291205111",
+        bizName: "bh3_global"
+    },
+    tearsOfThemis: {
+        name: "Tears of Themis",
+        url: "https://sg-public-api.hoyolab.com/event/luna/os/sign",
+        actId: "e202308141137581",
+        bizName: "nxx_global"
     }
 };
 

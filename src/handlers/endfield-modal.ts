@@ -1,5 +1,6 @@
 import { type ModalSubmitInteraction, MessageFlags } from "discord.js";
 import { User } from "../database/models/User";
+import { EndfieldService } from "../services/endfield";
 
 export async function handleEndfieldModal(interaction: ModalSubmitInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -9,25 +10,11 @@ export async function handleEndfieldModal(interaction: ModalSubmitInteraction): 
     const server = interaction.fields.getTextInputValue("endfield-server").trim() || "2";
     const nickname = interaction.fields.getTextInputValue("endfield-nickname")?.trim() || "Unknown";
 
-    // Validate server
-    if (server !== "2" && server !== "3") {
+    // Validate params using service
+    const validation = EndfieldService.validateParams(skOAuthCredKey, gameId, server);
+    if (!validation.valid) {
         await interaction.editReply({
-            content: "❌ Invalid server. Use **2** for Asia or **3** for Americas/Europe."
-        });
-        return;
-    }
-
-    // Validate basic format
-    if (!skOAuthCredKey || skOAuthCredKey.length < 20) {
-        await interaction.editReply({
-            content: "❌ Token terlalu pendek. Pastikan copy nilai **SK_OAUTH_CRED_KEY** yang lengkap dari cookies."
-        });
-        return;
-    }
-
-    if (!gameId || !/^\d+$/.test(gameId)) {
-        await interaction.editReply({
-            content: "❌ Game UID harus berupa angka saja. Contoh: 10012345"
+            content: validation.message || "❌ Invalid parameters."
         });
         return;
     }
