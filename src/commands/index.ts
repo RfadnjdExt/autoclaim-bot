@@ -7,9 +7,22 @@ import * as redeem from "./redeem";
 import * as settings from "./settings";
 import * as help from "./help";
 import * as ping from "./ping";
+import * as embedSettings from "./embed-settings";
 
 import * as statistic from "./statistic";
 
-export const commands = [setupHoyolab, setupEndfield, claim, status, remove, settings, help, ping, statistic, redeem];
+export const commands = [
+    setupHoyolab,
+    setupEndfield,
+    claim,
+    status,
+    remove,
+    settings,
+    help,
+    ping,
+    statistic,
+    redeem,
+    embedSettings
+];
 
 export const commandsData = commands.map(cmd => cmd.data);

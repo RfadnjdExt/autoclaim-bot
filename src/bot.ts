@@ -3,11 +3,12 @@ import { config } from "./config";
 import { connectDatabase } from "./database/connection";
 import { startScheduler } from "./services/scheduler";
 import { handleInteraction } from "./handlers/interaction";
+import { handleMessage } from "./handlers/message";
 import { startPresenceUpdater } from "./utils/presence";
 
 // Create client
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
     ws: {
         properties: {
             browser: "Discord iOS"
@@ -29,6 +30,9 @@ client.once(Events.ClientReady, readyClient => {
 
 // Interaction handler
 client.on(Events.InteractionCreate, handleInteraction);
+
+// Message handler for embed fix
+client.on(Events.MessageCreate, handleMessage);
 
 // Main function
 async function main() {
