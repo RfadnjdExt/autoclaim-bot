@@ -18,7 +18,6 @@
         "typescript": "^5.9.3"
     },
     "dependencies": {
-        "@napi-rs/canvas": "^0.1.89",
         "axios": "^1.13.4",
         "discord.js": "^14.25.1",
         "mongoose": "^9.1.5",
