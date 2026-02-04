@@ -69,19 +69,36 @@ async function generateCredByCode(code: string): Promise<GenerateCredResponse> {
 
 /**
  * Perform complete OAuth flow to obtain SKPORT credentials
- * @param accountToken - The account_token from Gryphline (obtained from Local Storage)
+ * @param accountToken - The account_token from Gryphline (obtained from Cookie or Local Storage)
  * @returns OAuth credentials containing cred, salt, userId
  */
 export async function performOAuthFlow(accountToken: string): Promise<OAuthCredentials> {
+    // URL-decode the token if it appears to be URL-encoded
+    let token = accountToken.trim();
+    if (token.includes("%")) {
+        try {
+            token = decodeURIComponent(token);
+            console.log("[Endfield OAuth] Token was URL-decoded");
+        } catch {
+            // Token wasn't URL-encoded, use as-is
+        }
+    }
+
     console.log("[Endfield OAuth] Step 1: Getting basic info...");
-    const basicResult = await getBasicInfo(accountToken);
+    console.log(`[Endfield OAuth] Token length: ${token.length}, starts with: ${token.substring(0, 10)}...`);
+
+    const basicResult = await getBasicInfo(token);
+    console.log("[Endfield OAuth] Step 1 response:", JSON.stringify(basicResult));
+
     if (basicResult.status !== 0) {
         throw new Error(`OAuth Step 1 failed: ${basicResult.msg || `status ${basicResult.status}`}`);
     }
     console.log(`[Endfield OAuth] Step 1 OK: hgId=${basicResult.data?.hgId}`);
 
     console.log("[Endfield OAuth] Step 2: Granting OAuth code...");
-    const grantResult = await grantOAuthCode(accountToken);
+    const grantResult = await grantOAuthCode(token);
+    console.log("[Endfield OAuth] Step 2 response:", JSON.stringify(grantResult));
+
     if (grantResult.status !== 0 || !grantResult.data?.code) {
         throw new Error(`OAuth Step 2 failed: ${grantResult.msg || `status ${grantResult.status}`}`);
     }
@@ -89,6 +106,8 @@ export async function performOAuthFlow(accountToken: string): Promise<OAuthCrede
 
     console.log("[Endfield OAuth] Step 3: Generating credentials...");
     const credResult = await generateCredByCode(grantResult.data.code);
+    console.log("[Endfield OAuth] Step 3 response:", JSON.stringify(credResult));
+
     if (credResult.code !== 0 || !credResult.data?.cred) {
         throw new Error(`OAuth Step 3 failed: ${credResult.message || `code ${credResult.code}`}`);
     }
