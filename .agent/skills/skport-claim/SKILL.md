@@ -10,13 +10,14 @@ This skill covers SKPORT (Arknights: Endfield) API integration for auto-claim wi
 ## Authentication
 
 ### OAuth Flow (Recommended)
+
 Uses `account_token` from Gryphline to dynamically obtain credentials.
 
 ```typescript
 // Step 1: Get basic info
 GET https://as.gryphline.com/user/info/v1/basic?token={accountToken}
 
-// Step 2: Grant OAuth code  
+// Step 2: Grant OAuth code
 POST https://as.gryphline.com/user/oauth2/v2/grant
 Body: { token: accountToken, appCode: "6eb76d4e13aa36e6", type: 0 }
 
@@ -29,29 +30,24 @@ Headers: { platform: "3", Origin: "https://www.skport.com" }
 ```
 
 ### Credential TTL
+
 - OAuth credentials expire after ~30 minutes
 - Recommend refresh at 25-minute intervals
 
 ## Signing
 
 ### V1 Sign (Basic endpoints)
+
 ```typescript
 function generateSignV1(timestamp: string, cred: string): string {
-    return crypto.createHash("md5")
-        .update(`timestamp=${timestamp}&cred=${cred}`)
-        .digest("hex");
+    return crypto.createHash("md5").update(`timestamp=${timestamp}&cred=${cred}`).digest("hex");
 }
 ```
 
 ### V2 Sign (Attendance, /card/detail, /wiki/, /binding, /enums, /v2/)
+
 ```typescript
-function generateSignV2(
-    path: string, 
-    timestamp: string, 
-    platform: string, 
-    vName: string, 
-    salt: string
-): string {
+function generateSignV2(path: string, timestamp: string, platform: string, vName: string, salt: string): string {
     const headerJson = JSON.stringify({ platform, timestamp, dId: "", vName });
     const s = `${path}${timestamp}${headerJson}`;
     const hmac = crypto.createHmac("sha256", salt).update(s).digest("hex");
@@ -62,11 +58,13 @@ function generateSignV2(
 ## Daily Check-in API
 
 ### Endpoint
+
 ```
 POST https://zonai.skport.com/web/v1/game/endfield/attendance
 ```
 
 ### Headers
+
 ```typescript
 const headers = {
     cred: credentials.cred,
@@ -81,13 +79,15 @@ const headers = {
 ```
 
 ### Response Codes
-| code | Meaning |
-|------|---------|
-| `0` | Success |
-| `0` + `hasToday: true` | Already claimed |
-| Non-zero | Error (check message) |
+
+| code                   | Meaning               |
+| ---------------------- | --------------------- |
+| `0`                    | Success               |
+| `0` + `hasToday: true` | Already claimed       |
+| Non-zero               | Error (check message) |
 
 ### Success Response
+
 ```json
 {
     "code": 0,
@@ -112,12 +112,12 @@ const headers = {
 ```typescript
 export class EndfieldService {
     constructor(options: {
-        accountToken?: string;  // Preferred: OAuth token
-        legacyCred?: string;    // Fallback: static cred
+        accountToken?: string; // Preferred: OAuth token
+        legacyCred?: string; // Fallback: static cred
         gameId: string;
         server?: string;
     }) {}
-    
+
     async claim(): Promise<EndfieldClaimResult> {
         // 1. Get/refresh credentials via OAuth
         // 2. Build headers with v2 signing
@@ -128,6 +128,7 @@ export class EndfieldService {
 ```
 
 ## Error Handling
+
 - Retry OAuth refresh on 401/403 errors
 - Cache credentials in-memory with 25-min TTL
 - Clear cache on user re-setup

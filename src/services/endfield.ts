@@ -36,12 +36,7 @@ export class EndfieldService {
     private server: string;
     private cacheKey: string;
 
-    constructor(options: {
-        accountToken?: string;
-        legacyCred?: string;
-        gameId: string;
-        server?: string;
-    }) {
+    constructor(options: { accountToken?: string; legacyCred?: string; gameId: string; server?: string }) {
         this.accountToken = options.accountToken;
         this.legacyCred = options.legacyCred;
         this.id = options.gameId;
@@ -95,7 +90,9 @@ export class EndfieldService {
         id: string,
         server: string
     ): { valid: boolean; message?: string; isAccountToken?: boolean } {
-        console.log(`[Endfield] Validating params - UID: ${id}, Server: ${server}, Token length: ${token?.length || 0}`);
+        console.log(
+            `[Endfield] Validating params - UID: ${id}, Server: ${server}, Token length: ${token?.length || 0}`
+        );
 
         if (!token || token.length < 20) {
             console.log(`[Endfield] ❌ Validation failed: Token too short`);
@@ -142,7 +139,13 @@ export class EndfieldService {
 
         // Add v2 signature if we have salt (from OAuth)
         if (credentials.salt) {
-            const sign = generateSignV2("/web/v1/game/endfield/attendance", timestamp, PLATFORM, VERSION, credentials.salt);
+            const sign = generateSignV2(
+                "/web/v1/game/endfield/attendance",
+                timestamp,
+                PLATFORM,
+                VERSION,
+                credentials.salt
+            );
             headers["sign"] = sign;
             console.log(`[Endfield] Using v2 signing`);
         } else {
@@ -152,10 +155,14 @@ export class EndfieldService {
         console.log(`[Endfield] Attempting claim for UID: ${this.id}, Server: ${this.server}`);
 
         try {
-            const response = await axios.post(ATTENDANCE_URL, {}, {
-                headers,
-                timeout: 30000
-            });
+            const response = await axios.post(
+                ATTENDANCE_URL,
+                {},
+                {
+                    headers,
+                    timeout: 30000
+                }
+            );
 
             const responseJson = response.data;
             console.log(`[Endfield] Response:`, JSON.stringify(responseJson));

@@ -1,9 +1,7 @@
 import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { UniversalSpeedTest, SpeedUnits } from "universal-speedtest";
 
-export const data = new SlashCommandBuilder()
-    .setName("speedtest")
-    .setDescription("Check hosting server network speed");
+export const data = new SlashCommandBuilder().setName("speedtest").setDescription("Check hosting server network speed");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const waitingEmbed = new EmbedBuilder()
