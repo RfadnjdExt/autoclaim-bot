@@ -55,31 +55,26 @@ export class EndfieldService {
             return { cred: cached.cred, salt: cached.salt };
         }
 
-        // Try OAuth flow with accountToken
-        if (this.accountToken) {
-            try {
-                console.log(`[Endfield] Refreshing OAuth credentials for ${this.id}...`);
-                const credentials = await performOAuthFlow(this.accountToken);
-                const cached: CachedCredentials = {
-                    ...credentials,
-                    obtainedAt: Date.now()
-                };
-                credentialCache.set(this.cacheKey, cached);
-                console.log(`[Endfield] OAuth credentials refreshed successfully`);
-                return { cred: credentials.cred, salt: credentials.salt };
-            } catch (error: any) {
-                console.error(`[Endfield] OAuth refresh failed: ${error.message}`);
-                // Fall through to legacy if available
-            }
+        // OAuth flow with accountToken is mandatory
+        if (!this.accountToken) {
+            console.error(`[Endfield] No accountToken available for ${this.id}. User needs to re-setup.`);
+            return null;
         }
 
-        // Fallback to legacy cred (no salt = can't use v2 signing)
-        if (this.legacyCred) {
-            console.log(`[Endfield] Using legacy cred (v1 signing only)`);
-            return { cred: this.legacyCred, salt: "" };
+        try {
+            console.log(`[Endfield] Refreshing OAuth credentials for ${this.id}...`);
+            const credentials = await performOAuthFlow(this.accountToken);
+            const newCached: CachedCredentials = {
+                ...credentials,
+                obtainedAt: Date.now()
+            };
+            credentialCache.set(this.cacheKey, newCached);
+            console.log(`[Endfield] OAuth credentials refreshed successfully`);
+            return { cred: credentials.cred, salt: credentials.salt };
+        } catch (error: any) {
+            console.error(`[Endfield] OAuth refresh failed: ${error.message}`);
+            return null;
         }
-
-        return null;
     }
 
     /**

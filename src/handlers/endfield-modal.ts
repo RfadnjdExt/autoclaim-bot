@@ -1,6 +1,7 @@
 import { type ModalSubmitInteraction, MessageFlags } from "discord.js";
 import { User } from "../database/models/User";
 import { EndfieldService } from "../services/endfield";
+import { performOAuthFlow } from "../services/endfield-oauth";
 
 export async function handleEndfieldModal(interaction: ModalSubmitInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -19,58 +20,66 @@ export async function handleEndfieldModal(interaction: ModalSubmitInteraction): 
         return;
     }
 
-    // Determine if this is an account_token (for OAuth) or legacy cred
-    const isAccountToken = validation.isAccountToken ?? token.length > 100;
+    // Test OAuth flow immediately to validate the token
+    try {
+        await interaction.editReply({
+            content: "🔄 Validating token via OAuth flow..."
+        });
 
-    // Save to database
-    const updateData: Record<string, any> = {
-        username: interaction.user.username,
-        endfield: {
+        const credentials = await performOAuthFlow(token);
+
+        // OAuth successful - save to database
+        await User.findOneAndUpdate(
+            { discordId: interaction.user.id },
+            {
+                $set: {
+                    username: interaction.user.username,
+                    endfield: {
+                        accountToken: token,
+                        salt: credentials.salt,
+                        gameId,
+                        server,
+                        accountName: nickname,
+                        credExpiry: new Date(Date.now() + 25 * 60 * 1000) // 25 min
+                    }
+                },
+                $setOnInsert: {
+                    settings: { notifyOnClaim: true }
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        // Clear any cached credentials for this user
+        const service = new EndfieldService({
+            accountToken: token,
             gameId,
-            server,
-            accountName: nickname
-        }
-    };
+            server
+        });
+        service.clearCache();
 
-    // Store in appropriate field based on token type
-    if (isAccountToken) {
-        updateData.endfield.accountToken = token;
-        updateData.endfield.skOAuthCredKey = undefined; // Clear legacy
-    } else {
-        updateData.endfield.skOAuthCredKey = token;
-        updateData.endfield.accountToken = undefined; // Clear new
+        const serverName = server === "2" ? "Asia" : "Americas/Europe";
+
+        await interaction.editReply({
+            content:
+                `✅ **Endfield token saved!**\n\n` +
+                `**Account**: ${nickname}\n` +
+                `**UID**: ${gameId}\n` +
+                `**Server**: ${serverName}\n` +
+                `**OAuth**: ✅ Validated\n\n` +
+                `⚠️ Gunakan \`/claim endfield\` untuk test daily claim.`
+        });
+    } catch (error: any) {
+        console.error(`[Endfield Modal] OAuth validation failed:`, error.message);
+
+        await interaction.editReply({
+            content:
+                `❌ **OAuth validation failed!**\n\n` +
+                `**Error**: ${error.message}\n\n` +
+                `**Pastikan:**\n` +
+                `1. Token dari Local Storage: F12 > Application > Local Storage > skport.com\n` +
+                `2. Copy nilai \`account_token\` (bukan cookie)\n` +
+                `3. Pastikan sudah login di skport.com`
+        });
     }
-
-    await User.findOneAndUpdate(
-        { discordId: interaction.user.id },
-        {
-            $set: updateData,
-            $setOnInsert: {
-                settings: { notifyOnClaim: true }
-            }
-        },
-        { upsert: true, new: true }
-    );
-
-    // Clear any cached credentials for this user
-    const service = new EndfieldService({
-        accountToken: isAccountToken ? token : undefined,
-        legacyCred: isAccountToken ? undefined : token,
-        gameId,
-        server
-    });
-    service.clearCache();
-
-    const serverName = server === "2" ? "Asia" : "Americas/Europe";
-    const tokenType = isAccountToken ? "Account Token (OAuth)" : "Legacy Cred";
-
-    await interaction.editReply({
-        content:
-            `✅ **Endfield token saved!**\n\n` +
-            `**Account**: ${nickname}\n` +
-            `**UID**: ${gameId}\n` +
-            `**Server**: ${serverName}\n` +
-            `**Token Type**: ${tokenType}\n\n` +
-            `⚠️ Gunakan \`/claim endfield\` untuk test apakah token berfungsi.`
-    });
 }
