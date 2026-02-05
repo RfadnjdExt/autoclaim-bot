@@ -41,7 +41,7 @@ let authExpiresAt = 0;
 export class CrunchyrollService {
     private readonly API_BASE = "https://beta-api.crunchyroll.com";
     // Hardcoded Android TV client credentials (anonymous access)
-    private readonly BASIC_AUTH = "bmR0aTZicXlqcm9wNXZnZjF0dnU6elpIcS00SEJJVDlDb2FMcnBPREJjRVRCTUNHai1QNlY=";
+    private readonly BASIC_AUTH = "bmR0aTZicXlqcm9wNXZnZjF0dnU6elpIcS00SEJJVDlDb2FMcnBPREJjRVRCTUNHai1QNlg=";
     private readonly USER_AGENT =
         "Crunchyroll/ANDROIDTV/3.50.0_22282 (Android 12; en-US; SHIELD Android TV Build/SR1A.211012.001)";
 
