@@ -1,6 +1,12 @@
+/**
+ * Endfield Modal Handler
+ * Handles the modal submission for Endfield token setup
+ */
+
 import { type ModalSubmitInteraction, MessageFlags } from "discord.js";
 import { User } from "../database/models/User";
 import { EndfieldService } from "../services/endfield";
+import { ENDFIELD } from "../constants";
 
 export async function handleEndfieldModal(interaction: ModalSubmitInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -49,7 +55,7 @@ export async function handleEndfieldModal(interaction: ModalSubmitInteraction): 
         { upsert: true, new: true }
     );
 
-    const serverName = server === "2" ? "Asia" : "Americas/Europe";
+    const serverName = ENDFIELD.servers[server] || "Unknown";
 
     await interaction.editReply({
         content:

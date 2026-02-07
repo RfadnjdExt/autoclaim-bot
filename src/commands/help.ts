@@ -1,4 +1,10 @@
+/**
+ * Help Command
+ * Display usage instructions for all bot features
+ */
+
 import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
+import { ENDFIELD } from "../constants";
 
 export const data = new SlashCommandBuilder().setName("help").setDescription("Show how to use this bot");
 
@@ -94,7 +100,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
                 value: [
                     "• **Token**: SK_OAUTH_CRED_KEY dari script",
                     "• **Game UID**: UID dari script atau profil in-game",
-                    "• **Server**: 2 = Asia, 3 = Americas/Europe"
+                    `• **Server**: 2 = ${ENDFIELD.servers["2"]}, 3 = ${ENDFIELD.servers["3"]}`
                 ].join("\n"),
                 inline: false
             },

@@ -1,7 +1,13 @@
+/**
+ * Redeem Command
+ * Redeem gift codes for HoYoverse game accounts
+ */
+
 import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { User } from "../database/models/User";
 import { HoyolabService, type GameAccount } from "../services/hoyolab";
 import { CodeSourceService, type RedeemCode } from "../services/code-source";
+import { getGameDisplayName } from "../constants";
 
 export const data = new SlashCommandBuilder()
     .setName("redeem")
@@ -37,12 +43,13 @@ async function redeemForUser(
         accounts = await hoyolab.getGameAccounts(gameKey);
     }
 
-    if (accounts.length === 0) return [`No accounts found for ${gameKey}`];
+    if (accounts.length === 0) return [`No accounts found for ${getGameDisplayName(gameKey)}`];
 
     const results: string[] = [];
 
     for (const account of accounts) {
-        const accInfo = `${gameKey} [${account.region_name} - ${account.nickname}]`;
+        const gameName = getGameDisplayName(gameKey);
+        const accInfo = `${gameName} [${account.region_name} - ${account.nickname}]`;
         for (const code of codes) {
             // Rate limit delay (5 seconds to avoid -1048 and cooldown errors)
             await new Promise(r => setTimeout(r, 5000));
@@ -55,7 +62,7 @@ async function redeemForUser(
 }
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    await interaction.deferReply();
+    await interaction.deferReply({ ephemeral: true });
 
     const user = await User.findOne({ discordId: interaction.user.id });
     if (!user || !user.hoyolab?.token) {

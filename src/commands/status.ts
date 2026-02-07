@@ -1,5 +1,12 @@
+/**
+ * Status Command
+ * Display user's auto-claim configuration and history
+ */
+
 import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
 import { User } from "../database/models/User";
+import { GAME_DISPLAY_NAMES, ENDFIELD } from "../constants";
+import { formatUtc8DateTime, discordTimestamp } from "../utils/time";
 
 export const data = new SlashCommandBuilder().setName("status").setDescription("Check your auto-claim status");
 
@@ -22,32 +29,20 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         .setFooter({ text: `Requested by ${interaction.user.username}` });
 
     // Server time in UTC+8
-    const now = new Date();
-    const utc8Time = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    const timeStr = utc8Time.toISOString().replace("T", " ").substring(0, 19);
+    const timeStr = formatUtc8DateTime();
 
     embed.setDescription(`🕐 **Server Time (UTC+8):** ${timeStr}`);
 
     // Hoyolab status
     if (user.hoyolab?.token) {
-        const gameNames: Record<string, string> = {
-            genshin: "Genshin Impact",
-            starRail: "Honkai: Star Rail",
-            honkai3: "Honkai Impact 3rd",
-            tearsOfThemis: "Tears of Themis",
-            zenlessZoneZero: "Zenless Zone Zero"
-        };
-
         const enabledGames = user.hoyolab.games
             ? Object.entries(user.hoyolab.games)
                   .filter(([_, enabled]) => enabled)
-                  .map(([key]) => gameNames[key] || key)
+                  .map(([key]) => GAME_DISPLAY_NAMES[key as keyof typeof GAME_DISPLAY_NAMES] || key)
                   .join(", ") || "None"
             : "None";
 
-        const lastClaim = user.hoyolab.lastClaim
-            ? `<t:${Math.floor(user.hoyolab.lastClaim.getTime() / 1000)}:R>`
-            : "Never";
+        const lastClaim = user.hoyolab.lastClaim ? discordTimestamp(user.hoyolab.lastClaim, "R") : "Never";
 
         embed.addFields({
             name: "🌟 Hoyolab",
@@ -69,10 +64,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
     // Endfield status
     if (user.endfield?.skOAuthCredKey) {
-        const lastClaim = user.endfield.lastClaim
-            ? `<t:${Math.floor(user.endfield.lastClaim.getTime() / 1000)}:R>`
-            : "Never";
-        const serverName = user.endfield.server === "2" ? "Asia" : "Americas/Europe";
+        const lastClaim = user.endfield.lastClaim ? discordTimestamp(user.endfield.lastClaim, "R") : "Never";
+        const serverName = ENDFIELD.servers[user.endfield.server] || "Unknown";
 
         embed.addFields({
             name: "🎮 Endfield",

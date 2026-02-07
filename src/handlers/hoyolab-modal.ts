@@ -1,3 +1,8 @@
+/**
+ * Hoyolab Modal Handler
+ * Handles the modal submission for Hoyolab token setup
+ */
+
 import {
     type ModalSubmitInteraction,
     MessageFlags,
@@ -7,6 +12,16 @@ import {
 } from "discord.js";
 import { User } from "../database/models/User";
 import { HoyolabService } from "../services/hoyolab";
+import { GAME_DISPLAY_NAMES, GAME_ICONS, type HoyolabGameKey } from "../constants";
+
+/** Default game options for select menu */
+const GAME_SELECT_OPTIONS: Array<{ key: HoyolabGameKey; emoji: string }> = [
+    { key: "genshin", emoji: "✨" },
+    { key: "starRail", emoji: "🚂" },
+    { key: "zenlessZoneZero", emoji: "💤" },
+    { key: "honkai3", emoji: "☄️" },
+    { key: "tearsOfThemis", emoji: "⚖️" }
+];
 
 export async function handleHoyolabModal(interaction: ModalSubmitInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -53,7 +68,7 @@ export async function handleHoyolabModal(interaction: ModalSubmitInteraction): P
                 username: interaction.user.username,
                 "hoyolab.token": token,
                 "hoyolab.accountName": nickname,
-                // We default games to all false initially, user will select them next
+                // Default all games to false initially, user will select them next
                 "hoyolab.games": {
                     genshin: false,
                     starRail: false,
@@ -69,21 +84,16 @@ export async function handleHoyolabModal(interaction: ModalSubmitInteraction): P
         { upsert: true, new: true }
     );
 
-    // Create Select Menu
+    // Create Select Menu using centralized constants
     const select = new StringSelectMenuBuilder()
         .setCustomId("hoyolab-games-select")
         .setPlaceholder("Select games to auto-claim")
         .setMinValues(1)
         .setMaxValues(5)
         .addOptions(
-            new StringSelectMenuOptionBuilder().setLabel("Genshin Impact").setValue("genshin").setEmoji("✨"),
-            new StringSelectMenuOptionBuilder().setLabel("Honkai: Star Rail").setValue("starRail").setEmoji("🚂"),
-            new StringSelectMenuOptionBuilder()
-                .setLabel("Zenless Zone Zero")
-                .setValue("zenlessZoneZero")
-                .setEmoji("💤"),
-            new StringSelectMenuOptionBuilder().setLabel("Honkai Impact 3rd").setValue("honkai3").setEmoji("☄️"),
-            new StringSelectMenuOptionBuilder().setLabel("Tears of Themis").setValue("tearsOfThemis").setEmoji("⚖️")
+            GAME_SELECT_OPTIONS.map(({ key, emoji }) =>
+                new StringSelectMenuOptionBuilder().setLabel(GAME_DISPLAY_NAMES[key]).setValue(key).setEmoji(emoji)
+            )
         );
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);

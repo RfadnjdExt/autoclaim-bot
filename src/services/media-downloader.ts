@@ -4,36 +4,11 @@
  */
 
 import axios from "axios";
+import type { VKRResponse, VKRFormat, DownloadResult } from "../types/media-downloader";
+import { VKRDOWNLOADER_API, VKRDOWNLOADER_API_KEY, MAX_DOWNLOAD_SIZE } from "../constants/media-downloader";
 
-const VKRDOWNLOADER_API = "https://vkrdownloader.org/server/";
-const API_KEY = "vkrdownloader";
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-
-interface VKRFormat {
-    url: string;
-    format_id: string;
-    ext: string;
-    size: string;
-}
-
-interface VKRResponse {
-    success?: boolean;
-    title?: string;
-    source?: string;
-    thumbnail?: string;
-    formats?: VKRFormat[];
-    error?: string;
-}
-
-interface DownloadResult {
-    success: boolean;
-    buffer?: Buffer;
-    filename?: string;
-    title?: string;
-    thumbnail?: string;
-    error?: string;
-    fallbackUrl?: string;
-}
+// Re-export types for backwards compatibility
+export type { VKRResponse, VKRFormat, DownloadResult };
 
 // Parse size string like "10 MB", "5.2 MB" to bytes
 function parseSizeToBytes(sizeStr: string): number {
@@ -59,7 +34,7 @@ function parseSizeToBytes(sizeStr: string): number {
 function findBestFormat(formats: VKRFormat[]): VKRFormat | null {
     // Sort by size descending (prefer higher quality)
     const validFormats = formats
-        .filter(f => parseSizeToBytes(f.size) <= MAX_FILE_SIZE)
+        .filter(f => parseSizeToBytes(f.size) <= MAX_DOWNLOAD_SIZE)
         .sort((a, b) => parseSizeToBytes(b.size) - parseSizeToBytes(a.size));
 
     return validFormats[0] ?? null;
@@ -72,7 +47,7 @@ export async function fetchMediaInfo(videoUrl: string): Promise<VKRResponse | nu
     try {
         const response = await axios.get<VKRResponse>(VKRDOWNLOADER_API, {
             params: {
-                api_key: API_KEY,
+                api_key: VKRDOWNLOADER_API_KEY,
                 vkr: videoUrl
             },
             timeout: 15000
@@ -104,14 +79,14 @@ export async function downloadMedia(videoUrl: string): Promise<DownloadResult> {
                 const response = await axios.get(info.source, {
                     responseType: "arraybuffer",
                     timeout: 30000,
-                    maxContentLength: MAX_FILE_SIZE,
+                    maxContentLength: MAX_DOWNLOAD_SIZE,
                     headers: {
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                     }
                 });
 
                 const buffer = Buffer.from(response.data);
-                if (buffer.length <= MAX_FILE_SIZE) {
+                if (buffer.length <= MAX_DOWNLOAD_SIZE) {
                     return {
                         success: true,
                         buffer,
@@ -146,7 +121,7 @@ export async function downloadMedia(videoUrl: string): Promise<DownloadResult> {
         const response = await axios.get(format.url, {
             responseType: "arraybuffer",
             timeout: 60000,
-            maxContentLength: MAX_FILE_SIZE,
+            maxContentLength: MAX_DOWNLOAD_SIZE,
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             }

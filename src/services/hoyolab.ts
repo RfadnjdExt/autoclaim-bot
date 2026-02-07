@@ -1,105 +1,57 @@
+/**
+ * Hoyolab Service
+ * Handles daily check-in and code redemption for HoYoverse games
+ */
+
 import { createHash } from "crypto";
 import axios, { type AxiosInstance } from "axios";
+import type { ClaimResult, GameAccount, TokenValidation, RedeemResult } from "../types";
+import { HOYOLAB_GAMES, HOYOLAB_HEADERS, HOYOLAB_REDEEM_URLS, HOYOLAB_DS_SALT } from "../constants";
 
-export interface ClaimResult {
-    success: boolean;
-    game: string;
-    message: string;
-    alreadyClaimed?: boolean;
-}
+// Re-export types for backwards compatibility
+export type { ClaimResult, GameAccount };
 
-interface GameConfig {
-    name: string;
-    url: string;
-    actId: string;
-    bizName: string;
-    extraHeaders?: Record<string, string>;
-}
-
-const GAMES: Record<string, GameConfig> = {
-    genshin: {
-        name: "Genshin Impact",
-        url: "https://sg-hk4e-api.hoyolab.com/event/sol/sign",
-        actId: "e202102251931481",
-        bizName: "hk4e_global"
-    },
-    starRail: {
-        name: "Honkai: Star Rail",
-        url: "https://sg-public-api.hoyolab.com/event/luna/os/sign",
-        actId: "e202303301540311",
-        bizName: "hkrpg_global"
-    },
-    zenlessZoneZero: {
-        name: "Zenless Zone Zero",
-        url: "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign",
-        actId: "e202406031448091",
-        bizName: "nap_global",
-        extraHeaders: {
-            "x-rpc-signgame": "zzz"
-        }
-    },
-    honkai3: {
-        name: "Honkai Impact 3rd",
-        url: "https://sg-public-api.hoyolab.com/event/mani/sign",
-        actId: "e202110291205111",
-        bizName: "bh3_global"
-    },
-    tearsOfThemis: {
-        name: "Tears of Themis",
-        url: "https://sg-public-api.hoyolab.com/event/luna/os/sign",
-        actId: "e202308141137581",
-        bizName: "nxx_global"
-    }
-};
-
-const DEFAULT_HEADERS = {
-    Accept: "application/json, text/plain, */*",
-    "Accept-Encoding": "gzip, deflate, br",
-    Connection: "keep-alive",
-    "x-rpc-app_version": "2.34.1",
-    "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "x-rpc-client_type": "4",
-    Referer: "https://act.hoyolab.com/",
-    Origin: "https://act.hoyolab.com"
-};
-
-export interface GameAccount {
-    game_biz: string;
-    region: string;
-    game_uid: string;
-    nickname: string;
-    level: number;
-    is_chosen?: boolean;
-    region_name: string;
-    is_official: boolean;
-}
-
+/**
+ * Service class for interacting with Hoyolab API
+ * Handles authentication, daily claims, and code redemption
+ */
 export class HoyolabService {
     private client: AxiosInstance;
     private token: string;
 
+    /**
+     * Create a new HoyolabService instance
+     * @param token - Hoyolab cookie string containing ltoken_v2, ltuid_v2, etc.
+     */
     constructor(token: string) {
         this.token = token;
         this.client = axios.create({
             timeout: 30000,
             headers: {
-                ...DEFAULT_HEADERS,
+                ...HOYOLAB_HEADERS,
                 Cookie: token
             }
         });
     }
 
+    /**
+     * Generate Dynamic Secret (DS) for API authentication
+     * @returns DS string in format "timestamp,random,hash"
+     */
     private generateDS(): string {
-        const salt = "6s25p5ox5y14umn1p61aqyyvbvvl3lrt";
         const t = Math.floor(Date.now() / 1000);
         const r = Math.random().toString(36).substring(2, 8);
-        const h = createHash("md5").update(`salt=${salt}&t=${t}&r=${r}`).digest("hex");
+        const h = createHash("md5").update(`salt=${HOYOLAB_DS_SALT}&t=${t}&r=${r}`).digest("hex");
         return `${t},${r},${h}`;
     }
 
+    /**
+     * Claim daily reward for a specific game
+     * @param gameKey - Game identifier (genshin, starRail, etc.)
+     * @returns Claim result with success status and message
+     */
     async claimGame(gameKey: string): Promise<ClaimResult> {
-        const game = GAMES[gameKey];
+        const game = HOYOLAB_GAMES[gameKey];
         if (!game) {
             return {
                 success: false,
@@ -160,6 +112,11 @@ export class HoyolabService {
         }
     }
 
+    /**
+     * Claim daily rewards for all enabled games
+     * @param enabledGames - Record of game keys to enabled status
+     * @returns Array of claim results for each game
+     */
     async claimAll(enabledGames: Record<string, boolean>): Promise<ClaimResult[]> {
         const results: ClaimResult[] = [];
 
@@ -178,7 +135,11 @@ export class HoyolabService {
         return results;
     }
 
-    async validateToken(): Promise<{ valid: boolean; message: string }> {
+    /**
+     * Validate if the stored token is still valid
+     * @returns Validation result with status and message
+     */
+    async validateToken(): Promise<TokenValidation> {
         try {
             // Try to check Genshin daily info to validate token
             const response = await this.client.get(
@@ -195,8 +156,13 @@ export class HoyolabService {
         }
     }
 
+    /**
+     * Get all game accounts for a specific game
+     * @param gameKey - Game identifier
+     * @returns Array of game accounts
+     */
     async getGameAccounts(gameKey: string): Promise<GameAccount[]> {
-        const game = GAMES[gameKey];
+        const game = HOYOLAB_GAMES[gameKey];
         if (!game) return [];
 
         try {
@@ -213,12 +179,15 @@ export class HoyolabService {
         }
     }
 
-    async redeemCode(
-        gameKey: string,
-        account: GameAccount,
-        code: string
-    ): Promise<{ success: boolean; message: string }> {
-        const game = GAMES[gameKey];
+    /**
+     * Redeem a gift code for a specific account
+     * @param gameKey - Game identifier
+     * @param account - Target game account
+     * @param code - Redemption code to use
+     * @returns Redemption result with success status and message
+     */
+    async redeemCode(gameKey: string, account: GameAccount, code: string): Promise<RedeemResult> {
+        const game = HOYOLAB_GAMES[gameKey];
         if (!game) return { success: false, message: "Unknown game" };
 
         if (!this.token.includes("cookie_token") && !this.token.includes("cookie_token_v2")) {
@@ -229,13 +198,7 @@ export class HoyolabService {
         }
 
         // Determine base URL based on game
-        let baseUrl = "https://sg-hk4e-api.hoyolab.com";
-
-        if (gameKey === "starRail") {
-            baseUrl = "https://sg-hkrpg-api.hoyolab.com";
-        } else if (gameKey === "zenlessZoneZero") {
-            baseUrl = "https://public-operation-nap.hoyoverse.com";
-        }
+        const baseUrl = HOYOLAB_REDEEM_URLS[gameKey] || "https://sg-hk4e-api.hoyolab.com";
 
         const params = new URLSearchParams({
             uid: String(account.game_uid),
@@ -257,8 +220,6 @@ export class HoyolabService {
                 "x-rpc-language": "en-us",
                 DS: this.generateDS(),
                 Cookie: this.token,
-                // Using the specific User-Agent from qingque reference if possible, or keeping standard one.
-                // qingque uses a standard browser UA in headers but generates DS with "5" (Others/Web).
                 "User-Agent":
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 Origin: "https://act.hoyolab.com",
@@ -281,6 +242,11 @@ export class HoyolabService {
     }
 }
 
+/**
+ * Format claim results for Discord display
+ * @param results - Array of claim results
+ * @returns Formatted string with emoji indicators
+ */
 export function formatHoyolabResults(results: ClaimResult[]): string {
     if (results.length === 0) {
         return "No games configured for claiming";

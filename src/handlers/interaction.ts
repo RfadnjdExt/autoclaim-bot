@@ -1,91 +1,98 @@
-import {
-    ChatInputCommandInteraction,
-    type Interaction,
-    MessageFlags,
-    Collection,
-    StringSelectMenuInteraction
-} from "discord.js";
+/**
+ * Interaction handler for Discord.js
+ * Handles commands, modals, and select menus
+ */
+
+import { ChatInputCommandInteraction, type Interaction, Collection, StringSelectMenuInteraction } from "discord.js";
 import { commands } from "../commands";
 import { handleHoyolabModal } from "./hoyolab-modal";
 import { handleEndfieldModal } from "./endfield-modal";
 import { handleHoyolabSelect } from "./hoyolab-select";
+import { handleInteractionError } from "../utils/error-handler";
 
-// Store commands in collection
+// Store commands in collection for fast lookup
 const commandCollection = new Collection<string, (typeof commands)[0]>();
 for (const command of commands) {
     commandCollection.set(command.data.name, command);
 }
 
-export async function handleInteraction(interaction: Interaction) {
+/**
+ * Main interaction handler
+ * Routes interactions to appropriate handlers
+ */
+export async function handleInteraction(interaction: Interaction): Promise<void> {
     // Handle slash commands
     if (interaction.isChatInputCommand()) {
-        const command = commandCollection.get(interaction.commandName);
-
-        if (!command) {
-            console.error(`Command ${interaction.commandName} not found`);
-            return;
-        }
-
-        try {
-            await command.execute(interaction as ChatInputCommandInteraction);
-        } catch (error) {
-            console.error(`Error executing ${interaction.commandName}:`, error);
-
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({
-                    content: "❌ An error occurred while executing this command.",
-                    flags: MessageFlags.Ephemeral
-                });
-            } else {
-                await interaction.reply({
-                    content: "❌ An error occurred while executing this command.",
-                    flags: MessageFlags.Ephemeral
-                });
-            }
-        }
+        await handleCommand(interaction);
+        return;
     }
 
     // Handle modal submissions
     if (interaction.isModalSubmit()) {
-        try {
-            if (interaction.customId === "setup-hoyolab-modal") {
-                await handleHoyolabModal(interaction);
-            } else if (interaction.customId === "setup-endfield-modal") {
-                await handleEndfieldModal(interaction);
-            }
-        } catch (error) {
-            console.error("Error handling modal:", error);
-
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({
-                    content: "❌ An error occurred while processing your input.",
-                    flags: MessageFlags.Ephemeral
-                });
-            } else {
-                await interaction.reply({
-                    content: "❌ An error occurred while processing your input.",
-                    flags: MessageFlags.Ephemeral
-                });
-            }
-        }
+        await handleModal(interaction);
+        return;
     }
 
-    // Handle Select Menus
+    // Handle select menus
     if (interaction.isStringSelectMenu()) {
-        try {
-            if (interaction.customId === "hoyolab-games-select") {
-                await handleHoyolabSelect(interaction as StringSelectMenuInteraction);
-            }
-        } catch (error) {
-            console.error("Error handling select menu:", error);
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({
-                    content: "❌ Error processing selection.",
-                    flags: MessageFlags.Ephemeral
-                });
-            } else {
-                await interaction.reply({ content: "❌ Error processing selection.", flags: MessageFlags.Ephemeral });
-            }
+        await handleSelectMenu(interaction);
+        return;
+    }
+}
+
+/**
+ * Handle slash command interactions
+ */
+async function handleCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const command = commandCollection.get(interaction.commandName);
+
+    if (!command) {
+        console.error(`[Command] ${interaction.commandName} not found`);
+        return;
+    }
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        await handleInteractionError(interaction, error, "❌ An error occurred while executing this command.");
+    }
+}
+
+/**
+ * Handle modal submission interactions
+ */
+async function handleModal(interaction: Interaction): Promise<void> {
+    if (!interaction.isModalSubmit()) return;
+
+    try {
+        switch (interaction.customId) {
+            case "setup-hoyolab-modal":
+                await handleHoyolabModal(interaction);
+                break;
+            case "setup-endfield-modal":
+                await handleEndfieldModal(interaction);
+                break;
+            default:
+                console.warn(`[Modal] Unknown modal: ${interaction.customId}`);
         }
+    } catch (error) {
+        await handleInteractionError(interaction, error, "❌ An error occurred while processing your input.");
+    }
+}
+
+/**
+ * Handle select menu interactions
+ */
+async function handleSelectMenu(interaction: StringSelectMenuInteraction): Promise<void> {
+    try {
+        switch (interaction.customId) {
+            case "hoyolab-games-select":
+                await handleHoyolabSelect(interaction);
+                break;
+            default:
+                console.warn(`[SelectMenu] Unknown select menu: ${interaction.customId}`);
+        }
+    } catch (error) {
+        await handleInteractionError(interaction, error, "❌ Error processing selection.");
     }
 }

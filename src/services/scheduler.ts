@@ -1,3 +1,8 @@
+/**
+ * Scheduler Service
+ * Handles automated daily claims for all users
+ */
+
 import cron from "node-cron";
 import { Client, TextChannel } from "discord.js";
 import { User } from "../database/models/User";
@@ -5,6 +10,14 @@ import { HoyolabService, formatHoyolabResults } from "./hoyolab";
 import { EndfieldService, formatEndfieldResult } from "./endfield";
 import { config } from "../config";
 
+/** Batch processing configuration */
+const BATCH_SIZE = 5; // Process 5 users concurrently
+const DELAY_BETWEEN_BATCHES = 2000; // 2 seconds between batches
+
+/**
+ * Start the daily claim scheduler
+ * @param client - Discord client instance
+ */
 export function startScheduler(client: Client): void {
     const { hour, minute } = config.scheduler;
     const cronExpression = `${minute} ${hour} * * *`;
@@ -30,10 +43,11 @@ export function startScheduler(client: Client): void {
     );
 }
 
+/**
+ * Run daily claims for all users
+ * @param client - Discord client instance
+ */
 export async function runDailyClaims(client: Client): Promise<void> {
-    const BATCH_SIZE = 5; // Process 5 users concurrently
-    const DELAY_BETWEEN_BATCHES = 2000; // 2 seconds between batches
-
     try {
         // Use cursor for memory efficiency
         const cursor = User.find({
@@ -66,10 +80,15 @@ export async function runDailyClaims(client: Client): Promise<void> {
 
         console.log(`✅ Daily claims completed. Processed ${count} users.`);
     } catch (error) {
-        console.error("Scheduler error:", error);
+        console.error("[Scheduler] Error:", error);
     }
 }
 
+/**
+ * Process claims for a single user
+ * @param client - Discord client instance
+ * @param user - User document from database
+ */
 async function processUserClaim(client: Client, user: any): Promise<void> {
     const results: string[] = [];
 
@@ -85,7 +104,7 @@ async function processUserClaim(client: Client, user: any): Promise<void> {
             user.hoyolab.lastClaim = new Date();
             user.hoyolab.lastClaimResult = resultText;
         } catch (error: any) {
-            console.error(`Hoyolab claim error for ${user.discordId}:`, error.message);
+            console.error(`[Scheduler] Hoyolab claim error for ${user.discordId}:`, error.message);
             results.push("**Hoyolab**\n❌ Error: " + error.message);
         }
     }
@@ -106,7 +125,7 @@ async function processUserClaim(client: Client, user: any): Promise<void> {
             user.endfield.lastClaim = new Date();
             user.endfield.lastClaimResult = resultText;
         } catch (error: any) {
-            console.error(`Endfield claim error for ${user.discordId}:`, error.message);
+            console.error(`[Scheduler] Endfield claim error for ${user.discordId}:`, error.message);
             results.push("**SKPORT/Endfield**\n❌ Error: " + error.message);
         }
     }
@@ -115,26 +134,36 @@ async function processUserClaim(client: Client, user: any): Promise<void> {
     try {
         await user.save();
     } catch (saveError) {
-        console.error(`Failed to save user ${user.discordId}:`, saveError);
+        console.error(`[Scheduler] Failed to save user ${user.discordId}:`, saveError);
     }
 
     // Send DM if enabled
     if (user.settings.notifyOnClaim && results.length > 0) {
-        try {
-            const discordUser = await client.users.fetch(user.discordId);
-            await discordUser.send({
-                embeds: [
-                    {
-                        title: "📋 Daily Claim Results",
-                        description: results.join("\n\n"),
-                        color: 0x00ff00,
-                        timestamp: new Date().toISOString()
-                    }
-                ]
-            });
-        } catch (error) {
-            // User might have DMs disabled or bot is blocked
-            console.warn(`Could not DM user ${user.discordId} (might have DMs off)`);
-        }
+        await sendClaimNotification(client, user.discordId, results);
+    }
+}
+
+/**
+ * Send claim notification to user via DM
+ * @param client - Discord client instance
+ * @param discordId - User's Discord ID
+ * @param results - Array of result strings
+ */
+async function sendClaimNotification(client: Client, discordId: string, results: string[]): Promise<void> {
+    try {
+        const discordUser = await client.users.fetch(discordId);
+        await discordUser.send({
+            embeds: [
+                {
+                    title: "📋 Daily Claim Results",
+                    description: results.join("\n\n"),
+                    color: 0x00ff00,
+                    timestamp: new Date().toISOString()
+                }
+            ]
+        });
+    } catch (error) {
+        // User might have DMs disabled or bot is blocked
+        console.warn(`[Scheduler] Could not DM user ${discordId} (might have DMs off)`);
     }
 }

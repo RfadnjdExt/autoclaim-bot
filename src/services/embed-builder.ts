@@ -5,27 +5,16 @@
 
 import { EmbedBuilder } from "discord.js";
 import axios from "axios";
-import { PlatformId, type PlatformConfig } from "./embed-fix";
+import { PlatformId } from "../types/embed-fix";
+import type { PlatformConfig } from "../types/embed-fix";
+import type { PostInfo } from "../types";
 
-export interface PostInfo {
-    author: {
-        name: string;
-        username: string;
-        avatar?: string;
-        url?: string;
-    };
-    content: string;
-    images: string[];
-    video?: string;
-    stats: {
-        likes: number;
-        reposts: number;
-        comments: number;
-    };
-    timestamp?: Date;
-}
+// Re-export types for backwards compatibility
+export type { PostInfo };
 
-// Format number for display (1000 -> 1K, 1000000 -> 1M)
+/**
+ * Format number for display (1000 -> 1K, 1000000 -> 1M)
+ */
 function formatNumber(num: number): string {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
@@ -34,6 +23,9 @@ function formatNumber(num: number): string {
 
 /**
  * Build rich Discord embed from post info
+ * @param info - Post information
+ * @param platform - Platform configuration
+ * @returns Configured EmbedBuilder
  */
 export function buildRichEmbed(info: PostInfo, platform: PlatformConfig): EmbedBuilder {
     const embed = new EmbedBuilder().setColor(platform.color);
@@ -82,6 +74,8 @@ export function buildRichEmbed(info: PostInfo, platform: PlatformConfig): EmbedB
 
 /**
  * Fetch Twitter/X post info via fxtwitter API
+ * @param statusId - Tweet status ID
+ * @returns Post info or null on error
  */
 export async function fetchTwitterInfo(statusId: string): Promise<PostInfo | null> {
     try {
@@ -117,6 +111,8 @@ export async function fetchTwitterInfo(statusId: string): Promise<PostInfo | nul
 
 /**
  * Fetch Bluesky post info via public API
+ * @param url - Bluesky post URL
+ * @returns Post info or null on error
  */
 export async function fetchBlueskyInfo(url: string): Promise<PostInfo | null> {
     try {
@@ -181,6 +177,10 @@ export async function fetchBlueskyInfo(url: string): Promise<PostInfo | null> {
 
 /**
  * Fetch post info based on platform
+ * @param url - Post URL
+ * @param platform - Platform configuration
+ * @param postId - Extracted post ID
+ * @returns Post info or null
  */
 export async function fetchPostInfo(
     url: string,

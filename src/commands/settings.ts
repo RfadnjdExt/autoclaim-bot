@@ -1,3 +1,8 @@
+/**
+ * Settings Command
+ * Manage user preferences for auto-claim
+ */
+
 import { SlashCommandBuilder, type ChatInputCommandInteraction, MessageFlags } from "discord.js";
 import { User } from "../database/models/User";
 

@@ -1,3 +1,8 @@
+/**
+ * Claim Command
+ * Manually trigger daily reward claims
+ */
+
 import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
 import { User } from "../database/models/User";
 import { HoyolabService, formatHoyolabResults } from "../services/hoyolab";

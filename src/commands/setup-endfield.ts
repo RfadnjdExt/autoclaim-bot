@@ -1,3 +1,8 @@
+/**
+ * Setup Endfield Command
+ * Open modal for SKPORT/Endfield token configuration
+ */
+
 import {
     SlashCommandBuilder,
     type ChatInputCommandInteraction,
@@ -7,6 +12,7 @@ import {
     ActionRowBuilder,
     type ModalActionRowComponentBuilder
 } from "discord.js";
+import { ENDFIELD } from "../constants";
 
 export const data = new SlashCommandBuilder()
     .setName("setup-endfield")
@@ -34,7 +40,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
     const serverInput = new TextInputBuilder()
         .setCustomId("endfield-server")
-        .setLabel("Server (2=Asia, 3=Americas/Europe)")
+        .setLabel(`Server (2=${ENDFIELD.servers["2"]}, 3=${ENDFIELD.servers["3"]})`)
         .setPlaceholder("2")
         .setStyle(TextInputStyle.Short)
         .setRequired(true)

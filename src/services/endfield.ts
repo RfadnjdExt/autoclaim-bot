@@ -1,48 +1,30 @@
+/**
+ * Endfield Service
+ * Handles daily check-in for Arknights: Endfield via SKPORT API
+ */
+
 import crypto from "crypto";
 import axios from "axios";
+import type {
+    EndfieldProfile,
+    AttendanceReward,
+    AttendanceResourceInfo,
+    EndfieldClaimResult,
+    SignInput,
+    EndfieldServiceOptions,
+    EndfieldValidation
+} from "../types";
+import {
+    ENDFIELD,
+    ENDFIELD_ATTENDANCE_URL,
+    ENDFIELD_HEADERS,
+    ENDFIELD_VALID_SERVERS,
+    ENDFIELD_PLATFORM,
+    ENDFIELD_VERSION
+} from "../constants";
 
-const ATTENDANCE_URL = "https://zonai.skport.com/web/v1/game/endfield/attendance";
-
-interface EndfieldProfile {
-    cred: string;
-    skGameRole: string;
-    platform: string;
-    vName: string;
-    signToken?: string;
-    deviceId?: string;
-}
-
-interface AttendanceReward {
-    id?: string;
-    name: string;
-    count?: number;
-    icon?: string;
-}
-
-interface AttendanceResourceInfo {
-    id: string;
-    count: number;
-    name: string;
-    icon: string;
-}
-
-export interface EndfieldClaimResult {
-    success: boolean;
-    message: string;
-    rewards?: AttendanceReward[];
-    already?: boolean;
-}
-
-interface SignInput {
-    url: string;
-    method: string;
-    body?: string;
-    timestamp: string;
-    platform: string;
-    vName: string;
-    deviceId?: string;
-    key: string;
-}
+// Re-export types for backwards compatibility
+export type { EndfieldClaimResult, EndfieldServiceOptions };
 
 /**
  * Build sign payload according to FlamingFox911 logic
@@ -118,20 +100,7 @@ function buildHeaders(profile: EndfieldProfile, signHeaders: Record<string, stri
         cred: profile.cred,
         "sk-game-role": profile.skGameRole,
         ...signHeaders,
-        accept: "*/*",
-        "content-type": "application/json",
-        origin: "https://game.skport.com",
-        referer: "https://game.skport.com/",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
-        "accept-language": "en-CA,en-US;q=0.9,en;q=0.8",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        dnt: "1",
-        priority: "u=4",
-        "sk-language": "en",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        te: "trailers"
+        ...ENDFIELD_HEADERS
     };
 }
 
@@ -160,22 +129,23 @@ function parseRewards(
     return rewards;
 }
 
-export interface EndfieldServiceOptions {
-    cred: string;
-    gameId: string;
-    server?: string;
-    signToken?: string;
-}
-
+/**
+ * Service class for interacting with SKPORT/Endfield API
+ * Handles authentication and daily check-in
+ */
 export class EndfieldService {
     private profile: EndfieldProfile;
 
+    /**
+     * Create a new EndfieldService instance
+     * @param options - Configuration options including cred, gameId, server
+     */
     constructor(options: EndfieldServiceOptions) {
         this.profile = {
             cred: options.cred,
-            skGameRole: `3_${options.gameId}_${options.server || "2"}`,
-            platform: "3",
-            vName: "1.0.0",
+            skGameRole: `${ENDFIELD_PLATFORM}_${options.gameId}_${options.server || "2"}`,
+            platform: ENDFIELD_PLATFORM,
+            vName: ENDFIELD_VERSION,
             signToken: options.signToken,
             deviceId: undefined
         };
@@ -183,8 +153,12 @@ export class EndfieldService {
 
     /**
      * Validates if the provided parameters are in correct format
+     * @param cred - OAuth credential token
+     * @param id - Game UID
+     * @param server - Server ID (2 or 3)
+     * @returns Validation result
      */
-    static validateParams(cred: string, id: string, server: string): { valid: boolean; message?: string } {
+    static validateParams(cred: string, id: string, server: string): EndfieldValidation {
         if (!cred || cred.length < 10) {
             return { valid: false, message: "❌ Invalid cred token (too short)" };
         }
@@ -193,8 +167,11 @@ export class EndfieldService {
             return { valid: false, message: "❌ Invalid Game ID (must be numbers only)" };
         }
 
-        if (server && !["2", "3"].includes(server)) {
-            return { valid: false, message: "❌ Invalid server (use 2 for Asia or 3 for Americas/EU)" };
+        if (server && !ENDFIELD_VALID_SERVERS.includes(server as (typeof ENDFIELD_VALID_SERVERS)[number])) {
+            return {
+                valid: false,
+                message: `❌ Invalid server (use 2 for ${ENDFIELD.servers["2"]} or 3 for ${ENDFIELD.servers["3"]})`
+            };
         }
 
         return { valid: true };
@@ -202,17 +179,18 @@ export class EndfieldService {
 
     /**
      * Check-in and claim daily rewards
+     * @returns Claim result with rewards if successful
      */
     async claim(): Promise<EndfieldClaimResult> {
         const body = "{}";
-        const signHeaders = buildSignHeaders(this.profile, ATTENDANCE_URL, "POST", body);
+        const signHeaders = buildSignHeaders(this.profile, ENDFIELD_ATTENDANCE_URL, "POST", body);
         const headers = buildHeaders(this.profile, signHeaders);
 
         console.log("[Endfield] Sending attendance request...");
         console.log("[Endfield] sk-game-role:", this.profile.skGameRole);
 
         try {
-            const response = await axios.post(ATTENDANCE_URL, body, {
+            const response = await axios.post(ENDFIELD_ATTENDANCE_URL, body, {
                 headers,
                 validateStatus: () => true
             });
@@ -271,17 +249,21 @@ export class EndfieldService {
 
 /**
  * Format claim result for display
+ * @param result - Claim result to format
+ * @returns Formatted string with emoji and game name
  */
 export function formatEndfieldResult(result: EndfieldClaimResult): string {
+    const gameName = ENDFIELD.name;
+
     if (!result.success && !result.already) {
-        return `❌ **Arknights: Endfield**: ${result.message}`;
+        return `❌ **${gameName}**: ${result.message}`;
     }
 
     if (result.already) {
-        return `✅ **Arknights: Endfield**: Already claimed today`;
+        return `✅ **${gameName}**: Already claimed today`;
     }
 
-    let msg = `✅ **Arknights: Endfield**: ${result.message}`;
+    let msg = `✅ **${gameName}**: ${result.message}`;
     if (result.rewards && result.rewards.length > 0) {
         const rewardList = result.rewards.map(r => `• ${r.name} x${r.count || 1}`).join("\n");
         msg += `\n${rewardList}`;

@@ -1,24 +1,28 @@
+/**
+ * Code Source Service
+ * Fetches active redeem codes from Hashblen API
+ */
+
 import axios from "axios";
+import type { RedeemCode, HashblenResponse } from "../types";
 
-export interface RedeemCode {
-    code: string;
-    description: string;
-    added_at: number;
-}
+// Re-export types for backwards compatibility
+export type { RedeemCode, HashblenResponse };
 
-export interface HashblenResponse {
-    hsr: RedeemCode[];
-    genshin: RedeemCode[];
-    zzz: RedeemCode[];
-    retcode: number;
-}
+/** API endpoint for redeem codes */
+const CODE_SOURCE_URL = "https://db.hashblen.com/codes";
 
+/**
+ * Service for fetching active redeem codes from external API
+ */
 export class CodeSourceService {
-    private static API_URL = "https://db.hashblen.com/codes";
-
+    /**
+     * Fetch all active redeem codes
+     * @returns Response with codes for all supported games, or null on error
+     */
     static async getCodes(): Promise<HashblenResponse | null> {
         try {
-            const response = await axios.get<HashblenResponse>(this.API_URL, {
+            const response = await axios.get<HashblenResponse>(CODE_SOURCE_URL, {
                 headers: {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                 },

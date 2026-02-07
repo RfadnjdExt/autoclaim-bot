@@ -1,12 +1,20 @@
-import { Client } from "discord.js";
+/**
+ * Presence Updater
+ * Updates bot activity with server time
+ */
 
-export function startPresenceUpdater(client: Client) {
+import { Client, ActivityType } from "discord.js";
+import { formatUtc8DateTime } from "./time";
+
+/**
+ * Start the presence updater that shows server time
+ * @param client - Discord client instance
+ */
+export function startPresenceUpdater(client: Client): void {
     const update = () => {
-        const now = new Date();
-        const utc8 = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-        const timeStr = utc8.toISOString().substring(11, 16); // HH:MM
-
-        client.user?.setActivity(`Server Time: ${timeStr} | /help`, { type: 3 }); // Watching
+        // Get time in HH:MM format (UTC+8)
+        const timeStr = formatUtc8DateTime().substring(11, 16);
+        client.user?.setActivity(`Server Time: ${timeStr} | /help`, { type: ActivityType.Watching });
     };
 
     update();

@@ -5,7 +5,8 @@
 
 import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { getGuildSettings, updateEmbedFixSettings } from "../database/models/GuildSettings";
-import { PLATFORMS, PlatformId } from "../services/embed-fix";
+import { PLATFORMS } from "../constants";
+import { PlatformId } from "../types";
 
 export const data = new SlashCommandBuilder()
     .setName("embed-settings")

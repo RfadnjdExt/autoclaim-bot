@@ -1,12 +1,18 @@
+/**
+ * Statistic Command
+ * Display detailed bot and system statistics
+ */
+
 import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, version as djsVersion } from "discord.js";
 import os from "os";
 import { version as nodeVersion } from "process";
+import { formatUptimeSeconds } from "../utils/time";
 
 export const data = new SlashCommandBuilder()
     .setName("statistic")
     .setDescription("Displays detailed bot and system statistics");
 
-export async function execute(interaction: ChatInputCommandInteraction) {
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
 
     const client = interaction.client;
@@ -40,47 +46,31 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             totalUsers = results.reduce((acc, val) => acc + val.users, 0);
             totalChannels = results.reduce((acc, val) => acc + val.channels, 0);
         } catch (error) {
-            console.error("Error fetching shard stats:", error);
+            console.error("[Statistic] Error fetching shard stats:", error);
         }
     }
 
     const embed = new EmbedBuilder()
         .setTitle(`${client.user?.username} Statistics`)
-        .setColor("#0099ff")
+        .setColor(0x0099ff)
         .addFields(
             { name: "• Owner", value: owner?.toString() || "Unknown", inline: false },
-            { name: "• Total Users", value: totalUsers.toString(), inline: true },
-            { name: "• Total Guilds", value: totalGuilds.toString(), inline: true },
-            { name: "• Total Channels", value: totalChannels.toString(), inline: true },
+            { name: "• Total Users", value: totalUsers.toLocaleString(), inline: true },
+            { name: "• Total Guilds", value: totalGuilds.toLocaleString(), inline: true },
+            { name: "• Total Channels", value: totalChannels.toLocaleString(), inline: true },
             { name: "• Total Shards", value: client.shard ? client.shard.count.toString() : "1", inline: true },
-            // { name: '• Voice Connections', value: client.voice.adapters.size.toString(), inline: true }, // Simple check
-            { name: "• Uptime", value: formatUptime(process.uptime()), inline: true },
+            { name: "• Uptime", value: formatUptimeSeconds(process.uptime()), inline: true },
             { name: "• Network Latency", value: `${client.ws.ping}ms`, inline: true },
             { name: "• Memory Usage", value: `${memUsage} MB`, inline: true },
             { name: "• CPU", value: `${os.cpus().length} cores - ${os.arch()}`, inline: true },
             { name: "• Model", value: cpu?.model || "Unknown", inline: false },
-            { name: "• Free Memory", value: `${freeMem} bytes`, inline: true },
+            { name: "• Free Memory", value: `${(freeMem / 1024 / 1024).toFixed(0)} MB`, inline: true },
             { name: "• Platform", value: `${os.platform()} ${os.release()}`, inline: true },
             { name: "• Node.js", value: nodeVersion, inline: true },
             { name: "• Discord.js", value: `v${djsVersion}`, inline: true },
-            { name: "• OS Uptime", value: formatUptime(osUptime), inline: true }
+            { name: "• OS Uptime", value: formatUptimeSeconds(osUptime), inline: true }
         )
         .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
-}
-
-function formatUptime(seconds: number): string {
-    const days = Math.floor(seconds / (3600 * 24));
-    const hours = Math.floor((seconds % (3600 * 24)) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    const parts = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    parts.push(`${secs}s`);
-
-    return parts.join(" ");
 }

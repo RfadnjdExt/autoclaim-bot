@@ -1,3 +1,8 @@
+/**
+ * Remove Command
+ * Remove user tokens from the database
+ */
+
 import { SlashCommandBuilder, type ChatInputCommandInteraction, MessageFlags } from "discord.js";
 import { User } from "../database/models/User";
 

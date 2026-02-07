@@ -1,3 +1,8 @@
+/**
+ * Setup Hoyolab Command
+ * Open modal for Hoyolab token configuration
+ */
+
 import {
     SlashCommandBuilder,
     type ChatInputCommandInteraction,

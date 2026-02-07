@@ -6,15 +6,12 @@
 import { Client, TextChannel, EmbedBuilder } from "discord.js";
 import { GuildSettings } from "../database/models/GuildSettings";
 import { CrunchyrollService } from "./crunchyroll";
-import { LANG_MAP } from "../constants";
+import { LANG_MAP, CRUNCHYROLL_COLOR } from "../constants";
 import type { FormattedEpisode } from "../types/crunchyroll";
 
 // Cache of last seen episode IDs (in-memory)
 const seenEpisodes = new Set<string>();
 let isFirstRun = true;
-
-// Crunchyroll orange color
-const CRUNCHYROLL_COLOR = 0xf47521;
 
 export function startCrunchyrollFeed(client: Client): void {
     console.log("📺 Starting Crunchyroll feed scheduler...");
@@ -24,7 +21,7 @@ export function startCrunchyrollFeed(client: Client): void {
     // Initial fetch to populate cache
     initializeCache(service);
 
-    // Poll every 1 minute
+    // Poll every 5 minute
     setInterval(
         async () => {
             // Only run on Shard 0 to prevent duplicates
@@ -34,8 +31,8 @@ export function startCrunchyrollFeed(client: Client): void {
 
             await checkForNewEpisodes(client, service);
         },
-        1 * 60 * 1000
-    ); // 1 minute
+        5 * 60 * 1000
+    ); // 5 minutes
 }
 
 async function initializeCache(service: CrunchyrollService): Promise<void> {
