@@ -61,7 +61,7 @@ export async function execute(interaction: any) {
                         synonymText += ` ${linkText}`;
                     }
                 }
-                description += `\n**${group.class}**: ${synonymText}`;
+                description += `\n\n**${group.class}**: ${synonymText}`;
             });
         }
 
