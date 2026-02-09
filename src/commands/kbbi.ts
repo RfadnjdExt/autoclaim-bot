@@ -47,13 +47,22 @@ export async function execute(interaction: any) {
         }
 
         if (result.synonyms && result.synonyms.length > 0) {
-            const maxSynonyms = 15;
-            const shownSynonyms = result.synonyms.slice(0, maxSynonyms);
-            let synonymText = shownSynonyms.join(", ");
-            if (result.synonyms.length > maxSynonyms) {
-                synonymText += `, dan ${result.synonyms.length - maxSynonyms} lainnya...`;
-            }
-            description += `\n\n**Sinonim**: ${synonymText}`;
+            description += "\n";
+            result.synonyms.forEach(group => {
+                const maxSynonyms = 15;
+                const shownSynonyms = group.words.slice(0, maxSynonyms);
+                let synonymText = shownSynonyms.join(", ");
+                if (group.words.length > maxSynonyms) {
+                    const remainingCount = group.words.length - maxSynonyms;
+                    const linkText = `dan ${remainingCount} lainnya`;
+                    if (result.thesaurusUrl) {
+                        synonymText += `[${linkText}](${result.thesaurusUrl})`;
+                    } else {
+                        synonymText += `${linkText}`;
+                    }
+                }
+                description += `\n**${group.class}**: ${synonymText}`;
+            });
         }
 
         embed.setDescription(description);

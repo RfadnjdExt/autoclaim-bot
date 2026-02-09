@@ -91,19 +91,68 @@ const extractDefinitions = ($: cheerio.CheerioAPI, selector: string): string[] =
     return definitions;
 };
 
-const searchThesaurus = async (url: string): Promise<string[]> => {
+const searchThesaurus = async (url: string): Promise<{ class: string; words: string[] }[]> => {
     try {
         const response = await axios.get(url, {
             headers: { "User-Agent": KBBI_USER_AGENT }
         });
         const $ = cheerio.load(response.data);
-        const synonyms: string[] = [];
+        const groupedSynonyms: { class: string; words: string[] }[] = [];
 
-        $(".one-par-content a.lemma-ordinary").each((_, el) => {
-            synonyms.push($(el).text().trim());
+        let currentClass = "Sinonim";
+        let currentWords: string[] = [];
+
+        // Iterate over children of .contain to capture structure
+        // Structure is usually: postag -> result-set(s) -> postag -> result-set(s)
+        const container = $(".contain");
+
+        container.children().each((_, el) => {
+            const $el = $(el);
+
+            if ($el.hasClass("result-postag")) {
+                // If we have collected words for the previous class, push them
+                if (currentWords.length > 0) {
+                    // Check if we already have a group for this class (merge if needed, though usually sequential)
+                    const existingGroup = groupedSynonyms.find(g => g.class === currentClass);
+                    if (existingGroup) {
+                        existingGroup.words.push(...currentWords);
+                    } else {
+                        groupedSynonyms.push({ class: currentClass, words: [...currentWords] });
+                    }
+                    currentWords = [];
+                }
+                currentClass = $el.text().trim();
+                // Capitolize first letter
+                if (currentClass) {
+                    currentClass = currentClass.charAt(0).toUpperCase() + currentClass.slice(1);
+                }
+            } else if ($el.hasClass("result-set")) {
+                const words: string[] = [];
+                $el.find(".one-par-content a").each((_, a) => {
+                    words.push($(a).text().trim());
+                });
+                if (words.length > 0) {
+                    currentWords.push(...words);
+                }
+            }
         });
 
-        return [...new Set(synonyms)]; // Unique
+        // Push the last group
+        if (currentWords.length > 0) {
+            const existingGroup = groupedSynonyms.find(g => g.class === currentClass);
+            if (existingGroup) {
+                existingGroup.words.push(...currentWords);
+            } else {
+                groupedSynonyms.push({ class: currentClass, words: [...currentWords] });
+            }
+        }
+
+        // Deduplicate words in each group
+        groupedSynonyms.forEach(g => {
+            g.words = [...new Set(g.words)];
+        });
+
+        return groupedSynonyms;
     } catch (error) {
         console.error(`Error fetching Thesaurus from ${url}:`, error);
         return [];
@@ -161,7 +210,7 @@ export const searchKbbi = async (word: string): Promise<KbbiResult | null> => {
             }
         });
 
-        let synonyms: string[] = [];
+        let synonyms: { class: string; words: string[] }[] = [];
         if (thesaurusUrl) {
             synonyms = await searchThesaurus(thesaurusUrl);
         }
@@ -177,6 +226,7 @@ export const searchKbbi = async (word: string): Promise<KbbiResult | null> => {
             lemma,
             otherDetails,
             synonyms: synonyms.length > 0 ? synonyms : undefined,
+            thesaurusUrl: thesaurusUrl || undefined,
             definitions: cleanedDefinitions
         };
     } catch (error) {
