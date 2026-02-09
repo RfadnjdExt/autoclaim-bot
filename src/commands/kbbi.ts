@@ -56,9 +56,9 @@ export async function execute(interaction: any) {
                     const remainingCount = group.words.length - maxSynonyms;
                     const linkText = `dan ${remainingCount} lainnya`;
                     if (result.thesaurusUrl) {
-                        synonymText += `[${linkText}](${result.thesaurusUrl})`;
+                        synonymText += ` [${linkText}](${result.thesaurusUrl})`;
                     } else {
-                        synonymText += `${linkText}`;
+                        synonymText += ` ${linkText}`;
                     }
                 }
                 description += `\n**${group.class}**: ${synonymText}`;
