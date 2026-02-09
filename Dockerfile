@@ -32,12 +32,12 @@ RUN apk add --no-cache dumb-init && \
 # Copy dependencies from builder
 COPY --from=builder --chown=botuser:bunjs /app/node_modules ./node_modules
 
-# Copy source code
-COPY --chown=botuser:bunjs package.json ./
+# Copy source code and config
+COPY --chown=botuser:bunjs package.json tsconfig.json ./
 COPY --chown=botuser:bunjs src ./src
 
-# Create logs directory
-RUN mkdir -p /app/logs && chown -R botuser:bunjs /app
+# Create logs and data directories
+RUN mkdir -p /app/logs /app/data && chown -R botuser:bunjs /app
 
 # Switch to non-root user for security
 USER botuser
