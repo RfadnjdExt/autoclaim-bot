@@ -13,6 +13,7 @@ import * as speedtest from "./speedtest";
 import * as bestrelease from "./bestrelease";
 import * as crunchyrollFeed from "./crunchyroll-feed";
 import * as kbbi from "./kbbi";
+import * as subcr from "./subcr";
 
 export const commands = [
     setupHoyolab,
@@ -29,7 +30,8 @@ export const commands = [
     speedtest,
     bestrelease,
     crunchyrollFeed,
-    kbbi
+    kbbi,
+    subcr
 ];
 
 export const commandsData = commands.map(cmd => cmd.data);

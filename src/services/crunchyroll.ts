@@ -1,14 +1,26 @@
 /**
  * Crunchyroll Service
  * Fetches latest episodes using anonymous auth
+ * Supports authenticated login for subtitle downloads
  */
 
-import type { CrunchyrollAuth, CrunchyrollEpisodes, CrunchyrollEpisode, FormattedEpisode } from "../types/crunchyroll";
+import type {
+    CrunchyrollAuth,
+    CrunchyrollEpisodes,
+    CrunchyrollEpisode,
+    FormattedEpisode,
+    CrunchyrollSubtitle,
+    CrunchyrollPlayResponse
+} from "../types/crunchyroll";
 import { LANG_MAP } from "../constants";
 
-// Cache for auth token
+// Cache for anonymous auth token
 let cachedAuth: CrunchyrollAuth | null = null;
 let authExpiresAt = 0;
+
+// Cache for account auth token (premium)
+let cachedAccountAuth: CrunchyrollAuth | null = null;
+let accountAuthExpiresAt = 0;
 
 export class CrunchyrollService {
     private readonly API_BASE = "https://beta-api.crunchyroll.com";
@@ -145,7 +157,7 @@ export class CrunchyrollService {
         if (meta.episode) {
             title += ` - Episode ${meta.episode}`;
         }
-        if (ep.title && ep.title !== `Episode ${meta.episode}`) {
+        if (ep.title && !/^Episode\s+0*\d+$/i.test(ep.title)) {
             // Avoid appending if episode title is just the series title
             if (ep.title !== meta.series_title) {
                 title += ` - ${ep.title}`;
@@ -380,5 +392,205 @@ export class CrunchyrollService {
             }
             return ep;
         });
+    }
+
+    /**
+     * Get auth token using Crunchyroll account credentials (premium access)
+     * Required for accessing streams/subtitles
+     */
+    async getAccountAuth(): Promise<CrunchyrollAuth | null> {
+        // Return cached token if valid
+        if (cachedAccountAuth && Date.now() < accountAuthExpiresAt) {
+            return cachedAccountAuth;
+        }
+
+        const email = process.env.CR_EMAIL;
+        const password = process.env.CR_PASSWORD;
+
+        if (!email || !password) {
+            console.error("CR_EMAIL or CR_PASSWORD not configured");
+            return null;
+        }
+
+        try {
+            const body = new URLSearchParams();
+            body.append("grant_type", "password");
+            body.append("username", email);
+            body.append("password", password);
+            body.append("scope", "offline_access");
+            body.append("device_id", crypto.randomUUID());
+            body.append("device_type", "Android TV");
+
+            const response = await fetch(`${this.API_BASE}/auth/v1/token`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Basic ${this.BASIC_AUTH}`,
+                    "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+                    "User-Agent": this.USER_AGENT
+                },
+                body: body.toString()
+            });
+
+            if (!response.ok) {
+                console.error("Crunchyroll account auth failed:", response.status);
+                return null;
+            }
+
+            const auth = (await response.json()) as CrunchyrollAuth;
+            if (!auth.access_token) {
+                console.error("Crunchyroll account auth: no access token");
+                return null;
+            }
+
+            // Cache with 30s buffer
+            cachedAccountAuth = auth;
+            accountAuthExpiresAt = Date.now() + (auth.expires_in - 30) * 1000;
+
+            return auth;
+        } catch (error) {
+            console.error("Crunchyroll account auth error:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Search episodes by anime title and episode number
+     * Returns matching episodes from the browse API
+     */
+    async searchEpisode(query: string, episodeNumber?: number): Promise<CrunchyrollEpisode[]> {
+        const auth = await this.getAuth();
+        if (!auth) return [];
+
+        try {
+            const params = new URLSearchParams({
+                q: query,
+                n: "25",
+                type: "series",
+                locale: "en-US"
+            });
+
+            const response = await fetch(`${this.API_BASE}/content/v2/discover/search?${params}`, {
+                headers: {
+                    Authorization: `Bearer ${auth.access_token}`,
+                    "User-Agent": this.USER_AGENT
+                }
+            });
+
+            if (!response.ok) {
+                console.error("Crunchyroll search failed:", response.status);
+                return [];
+            }
+
+            const data = (await response.json()) as {
+                data: { type: string; items: { id: string; title: string; slug_title: string }[] }[];
+            };
+
+            // Find series results
+            const seriesResults = data.data?.find(d => d.type === "series");
+            if (!seriesResults?.items?.length) return [];
+
+            // Get the first matching series
+            const series = seriesResults.items[0]!;
+
+            // Fetch seasons for this series
+            const seasonsRes = await fetch(
+                `${this.API_BASE}/content/v2/cms/series/${series.id}/seasons?locale=en-US`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth.access_token}`,
+                        "User-Agent": this.USER_AGENT
+                    }
+                }
+            );
+
+            if (!seasonsRes.ok) return [];
+
+            const seasonsData = (await seasonsRes.json()) as {
+                data: { id: string; title: string; audio_locale: string }[];
+            };
+
+            if (!seasonsData.data?.length) return [];
+
+            // Find the Japanese audio season (original)
+            const jpSeason =
+                seasonsData.data.find(s => s.audio_locale === "ja-JP") || seasonsData.data[0]!;
+
+            // Fetch episodes for this season
+            const episodesRes = await fetch(
+                `${this.API_BASE}/content/v2/cms/seasons/${jpSeason.id}/episodes?locale=en-US`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth.access_token}`,
+                        "User-Agent": this.USER_AGENT
+                    }
+                }
+            );
+
+            if (!episodesRes.ok) return [];
+
+            const episodesData = (await episodesRes.json()) as { data: CrunchyrollEpisode[] };
+
+            if (!episodesData.data?.length) return [];
+
+            // Filter by episode number if provided
+            if (episodeNumber !== undefined) {
+                return episodesData.data.filter(
+                    ep =>
+                        ep.episode_metadata?.episode_number === episodeNumber ||
+                        ep.episode_metadata?.episode === String(episodeNumber)
+                );
+            }
+
+            return episodesData.data;
+        } catch (error) {
+            console.error("Crunchyroll search error:", error);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch subtitles for an episode using premium account auth
+     * Returns subtitle map from cr-play-service
+     */
+    async fetchSubtitles(episodeId: string): Promise<Record<string, CrunchyrollSubtitle> | null> {
+        const auth = await this.getAccountAuth();
+        if (!auth) return null;
+
+        try {
+            const url = `https://cr-play-service.prd.crunchyrollsvc.com/v1/${episodeId}/web/firefox/play`;
+            const response = await fetch(url, {
+                headers: {
+                    Authorization: `Bearer ${auth.access_token}`,
+                    "User-Agent":
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0"
+                }
+            });
+
+            if (!response.ok) {
+                console.error("Crunchyroll play service failed:", response.status);
+                return null;
+            }
+
+            const data = (await response.json()) as CrunchyrollPlayResponse;
+            return data.subtitles || null;
+        } catch (error) {
+            console.error("Crunchyroll subtitle fetch error:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Download a single subtitle file content
+     * Returns the raw subtitle text (.ass format)
+     */
+    async downloadSubtitle(url: string): Promise<string | null> {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            return await response.text();
+        } catch (error) {
+            console.error("Subtitle download error:", error);
+            return null;
+        }
     }
 }

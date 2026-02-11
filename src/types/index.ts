@@ -18,7 +18,14 @@ export type {
 } from "./endfield";
 
 // Crunchyroll types
-export type { CrunchyrollAuth, CrunchyrollEpisode, CrunchyrollEpisodes, FormattedEpisode } from "./crunchyroll";
+export type {
+    CrunchyrollAuth,
+    CrunchyrollEpisode,
+    CrunchyrollEpisodes,
+    FormattedEpisode,
+    CrunchyrollSubtitle,
+    CrunchyrollPlayResponse
+} from "./crunchyroll";
 
 // Code source types
 export type { RedeemCode, HashblenResponse } from "./code-source";

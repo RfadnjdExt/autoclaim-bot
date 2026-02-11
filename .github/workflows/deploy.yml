@@ -66,13 +66,15 @@ jobs:
                   MONGODB_URI: ${{ secrets.MONGODB_URI }}
                   CLAIM_HOUR: ${{ vars.CLAIM_HOUR || '0' }}
                   CLAIM_MINUTE: ${{ vars.CLAIM_MINUTE || '0' }}
+                  CR_EMAIL: ${{ secrets.CR_EMAIL }}
+                  CR_PASSWORD: ${{ secrets.CR_PASSWORD }}
               with:
                   host: ${{ secrets.DEPLOY_SSH_HOST }}
                   username: ${{ secrets.DEPLOY_SSH_USERNAME }}
                   key: ${{ secrets.DEPLOY_SSH_KEY }}
                   port: ${{ secrets.DEPLOY_SSH_PORT }}
                   password: ${{ secrets.DEPLOY_SSH_PASSWORD }}
-                  envs: DISCORD_TOKEN,DISCORD_CLIENT_ID,MONGODB_URI,CLAIM_HOUR,CLAIM_MINUTE
+                  envs: DISCORD_TOKEN,DISCORD_CLIENT_ID,MONGODB_URI,CLAIM_HOUR,CLAIM_MINUTE,CR_EMAIL,CR_PASSWORD
                   script: |
                       mkdir -p ${{ secrets.DEPLOY_SSH_PATH }}
                       cd ${{ secrets.DEPLOY_SSH_PATH }}
@@ -84,6 +86,8 @@ jobs:
                       MONGODB_URI=${MONGODB_URI}
                       CLAIM_HOUR=${CLAIM_HOUR}
                       CLAIM_MINUTE=${CLAIM_MINUTE}
+                      CR_EMAIL=${CR_EMAIL}
+                      CR_PASSWORD=${CR_PASSWORD}
                       EOF
                       chmod 600 .env.production
 
@@ -95,6 +99,10 @@ jobs:
 
                       # Wait for startup
                       sleep 5
+
+                      # Deploy slash commands (register new/updated commands)
+                      docker compose exec -T autoclaim-bot bun run deploy
+                      echo "✓ Slash commands deployed"
 
                       # Verify deployment
                       docker compose ps

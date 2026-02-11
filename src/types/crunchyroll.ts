@@ -120,3 +120,16 @@ export interface FormattedEpisode {
         mal?: string;
     };
 }
+
+/** Subtitle entry from cr-play-service */
+export interface CrunchyrollSubtitle {
+    locale: string;
+    url: string;
+    format: string;
+}
+
+/** Response shape from cr-play-service play endpoint */
+export interface CrunchyrollPlayResponse {
+    subtitles: Record<string, CrunchyrollSubtitle>;
+    [key: string]: unknown;
+}
