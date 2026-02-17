@@ -48,3 +48,6 @@ export type { AnimeRelease, AnimeEntry } from "./bestrelease";
 
 // Anime Metadata types
 export type { AnilistMedia, AnilistResponse } from "./anime-metadata";
+
+// Jisho types
+export type { JishoResult, JishoAPIResponse, JishoWord } from "./jisho";
